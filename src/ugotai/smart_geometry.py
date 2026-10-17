@@ -20,9 +20,6 @@ import sys
 import time
 from ugot import ugot
 
-# ============================================================
-#  配置常量
-# ============================================================
 ROBOT_IP = "10.233.104.242"
 
 # 运动速度
@@ -40,9 +37,6 @@ MAX_TURN_ANGLE = 360            # 最大转向角度
 MIN_ARM_DURATION = 3            # 机械臂最少3秒
 
 
-# ============================================================
-#  动作执行函数
-# ============================================================
 def exec_polygon(got, params):
     """
     走多边形
@@ -54,11 +48,9 @@ def exec_polygon(got, params):
     direction = params[2].lower()  # cw or ccw
     mode = params[3].lower() if len(params) > 3 else "forward"
 
-    # 约束检查
     sides = max(MIN_SIDES, min(MAX_SIDES, sides))
     side_length = max(1, min(MAX_SIDE_LENGTH, side_length))
 
-    # 每次转向角度 = 360 / 边数
     turn_angle = int(round(360.0 / sides))
 
     is_backward = (mode == "backward")
@@ -70,7 +62,6 @@ def exec_polygon(got, params):
           f"每转{turn_angle}°")
 
     for i in range(sides):
-        # 走一条边
         if is_backward:
             got.mecanum_move_speed_times(1, POLYGON_MOVE_SPEED, side_length, 1)
         else:
@@ -193,9 +184,6 @@ def exec_arm(got, params):
     return True
 
 
-# ============================================================
-#  动作分发表
-# ============================================================
 ACTION_HANDLERS = {
     "polygon": exec_polygon,
     "poly": exec_polygon,
@@ -247,9 +235,6 @@ def parse_and_exec(got, action_str):
         return False
 
 
-# ============================================================
-#  主流程
-# ============================================================
 def main():
     if len(sys.argv) < 2:
         print("=" * 60)
@@ -271,7 +256,6 @@ def main():
         print("  arm:<时长秒>                                              机械臂动作（≥3秒）")
         sys.exit(1)
 
-    # 动作序列：一个字符串，用分号分隔
     action_seq = sys.argv[1]
     actions = [a.strip() for a in action_seq.split(";") if a.strip()]
 
@@ -282,12 +266,10 @@ def main():
     for i, a in enumerate(actions):
         print(f"  {i + 1}. {a}")
 
-    # 初始化机器人
     got = ugot.UGOT()
     got.initialize(ROBOT_IP)
     print("机器人连接成功")
 
-    # 依次执行每个动作
     success_count = 0
     for i, action_str in enumerate(actions):
         print(f"\n{'─' * 50}")
@@ -297,7 +279,6 @@ def main():
             success_count += 1
         time.sleep(0.3)
 
-    # 总结
     print(f"\n{'=' * 60}")
     print(f" 智能解算完成：{success_count}/{len(actions)} 个动作成功")
     print(f"{'=' * 60}")

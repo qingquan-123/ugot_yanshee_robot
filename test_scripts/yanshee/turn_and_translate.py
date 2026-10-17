@@ -5,8 +5,6 @@ import YanAPI
 
 YanAPI.yan_api_init("127.0.0.1")
 
-# ====================== 动作配置区 ======================
-# 小步幅：对准微调用
 def move_left():
     """小步幅左平移，对准用"""
     YanAPI.sync_play_motion("te_left_1_S6")
@@ -15,7 +13,6 @@ def move_right():
     """小步幅右平移，对准用"""
     YanAPI.sync_play_motion("te_right_S4")
 
-# 大步幅：搜索标签用
 def move_left_big():
     """大步幅左平移，搜索用"""
     YanAPI.sync_play_motion("trte_L_J_big_02")
@@ -31,7 +28,6 @@ def turn_left():
 def turn_right():
     """机器人原地小角度右转"""
     YanAPI.sync_play_motion("turn_r_S1")
-# =======================================================
 
 def tts(content):
     try:
@@ -74,22 +70,19 @@ def tat(target_id=3):
         print("启动AprilTag识别失败！")
         return
 
-    # ====================== 可修改参数区 ======================
-    TARGET_TAG_ID = target_id       # 目标标签ID
-    pos_threshold = 0.013     # 左右位置对准阈值，单位：米
-    init_angle_threshold = 10  # 初始粗调角度阈值，单位：度
-    fine_angle_threshold = 6   # 精调阶段角度阈值，单位：度
-    init_turn_max = 2        # 初始转向粗调最大次数
-    fine_turn_max = 3        # 精调阶段转向最大次数
-    # ========================================================
+    TARGET_TAG_ID = target_id
+    pos_threshold = 0.013
+    init_angle_threshold = 10
+    fine_angle_threshold = 6
+    init_turn_max = 2
+    fine_turn_max = 3
 
-    # 状态定义
-    STATE_INIT_TURN = 0      # 阶段1：初始转向粗调
-    STATE_INIT_POS = 1       # 阶段2：初始平移对准
-    STATE_SEARCH_TAG = 2     # 阶段3：大步幅平移搜索目标标签
-    STATE_TARGET_POS_1 = 3   # 阶段4：目标标签第一次平移对准
-    STATE_TARGET_ANGLE = 4   # 阶段5：目标标签转向精调
-    STATE_TARGET_POS_2 = 5   # 阶段6：目标标签第二次平移对准
+    STATE_INIT_TURN = 0
+    STATE_INIT_POS = 1
+    STATE_SEARCH_TAG = 2
+    STATE_TARGET_POS_1 = 3
+    STATE_TARGET_ANGLE = 4
+    STATE_TARGET_POS_2 = 5
 
     current_state = STATE_INIT_TURN
     init_turn_count = 0
@@ -119,7 +112,6 @@ def tat(target_id=3):
                     _, pitch_deg, _ = quat_to_euler_deg(qx, qy, qz, qw)
                     target_angle = pitch_deg
 
-            # ============== 状态机逻辑 ==============
             if current_state == STATE_INIT_TURN:
                 if not has_tag:
                     print("阶段1[初始转向]：未识别到标签，等待中")

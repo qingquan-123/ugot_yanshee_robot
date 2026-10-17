@@ -2,9 +2,9 @@
 
 
 trun_time = 0
-max_rotate_speed = 20#40
-max_forward_speed = 30#45
-base_forward_speed = 20#35
+max_rotate_speed = 20
+max_forward_speed = 30
+base_forward_speed = 20
 _pid_turn = None
 
 
@@ -48,7 +48,6 @@ def quick_align_after_turn(u, enable_forward_slide=True):
             print("偏移量已达标，结束静态矫正")
             break
 
-        # 分级横移，避免矫枉过正
         if abs(offset) > 40:
             step_speed = 7
             print(f"大偏差横移矫正，步速: {step_speed}")
@@ -82,7 +81,6 @@ def quick_align_after_turn(u, enable_forward_slide=True):
         offset, line_type, x, y = line_info
         print(f"本轮后状态 - 偏移量: {offset}, 线路类型: {line_type}")
 
-    # ========== 修改：根据参数决定是否执行前滑 ==========
     if enable_forward_slide:
         print("静态矫正完成，低速滑行动态回正...")
         u.mecanum_move_xyz(0, 10, 0)
@@ -93,7 +91,6 @@ def quick_align_after_turn(u, enable_forward_slide=True):
         print("静态矫正完成（近路口模式，跳过前滑）")
         u.mecanum_stop()
         time.sleep(0.1)
-    # ==================================================
 
     line_info = u.get_single_track_total_info()
     offset, line_type, x, y = line_info
@@ -122,7 +119,6 @@ def pid_find_line(u):
     lost_line_count = 0
     crossroad_cd = 0
 
-    # 官方弯道状态（保留辅助）
     curve_stable_frames = 0
     curve_end_frames = 0
     CURVE_THRESHOLD = 15
@@ -132,18 +128,14 @@ def pid_find_line(u):
     LOST_LINE_THRESHOLD = 30
     CROSSROAD_CD_FRAMES = 2
 
-    # 起步加速缓冲
     start_frames = 0
     START_BUFFER_FRAMES = 30
 
-    # ========== 优化：单帧触发路口警戒 ==========
-    crossroad_alert = False      # 路口警戒状态
-    alert_frames = 0             # 警戒已持续帧数
-    ALERT_TOTAL_FRAMES = 35      # 警戒总时长
-    ALERT_FORCE_TRIGGER = 25     # 警戒第25帧强制触发路口
-    # 触发警戒的条件：单帧偏移超过该值 或 识别到弯道
+    crossroad_alert = False
+    alert_frames = 0
+    ALERT_TOTAL_FRAMES = 35
+    ALERT_FORCE_TRIGGER = 25
     ALERT_OFFSET_THRESHOLD = 90
-    # =========================================
 
     while True:
         if crossroad_cd > 0:
@@ -151,7 +143,6 @@ def pid_find_line(u):
 
         rotate_speed, line_type, raw_offset, y = get_rotate_speed(u)
 
-        # 官方弯道状态更新
         if line_type == 2:
             curve_stable_frames += 1
             curve_end_frames = 0
@@ -162,18 +153,14 @@ def pid_find_line(u):
                 curve_stable_frames = 0
                 curve_end_frames = 0
 
-        # ========== 路口警戒逻辑 开始 ==========
-        # 进入警戒：识别到弯道 或 单帧大偏移，且冷却结束、未到3次路口
         if not crossroad_alert and crossroad_cd == 0 and trun_time < 3:
             if line_type == 2 or abs(raw_offset) > ALERT_OFFSET_THRESHOLD:
                 crossroad_alert = True
                 alert_frames = 0
                 print(" 进入路口警戒状态，降速慢行")
 
-        # 警戒计时
         if crossroad_alert:
             alert_frames += 1
-            # 警戒结束，重置
             if alert_frames > ALERT_TOTAL_FRAMES:
                 crossroad_alert = False
                 alert_frames = 0
@@ -188,7 +175,6 @@ def pid_find_line(u):
             trigger_crossroad = False
             trigger_reason = ""
 
-            # 保险1：官方识别到十字路口
             if line_type == 3 and crossroad_cd == 0 and trun_time < 3:
                 trigger_crossroad = True
                 trigger_reason = "官方识别到十字路口"
@@ -244,44 +230,36 @@ def pid_find_line(u):
                 start_frames = 0
                 continue
 
-            # ========== 巡线 ==========
             smooth_rotate = int(last_rotate_speed * 0.3 + rotate_speed * 0.7)
             last_rotate_speed = smooth_rotate
 
-            # 基础调速
             is_curve = line_type == 2 or curve_end_frames > 0
             if is_curve:
                 dynamic_speed = int(base_forward_speed * 0.55 - min(abs(rotate_speed) / 5, 3))
             else:
                 dynamic_speed = int(base_forward_speed - min(abs(rotate_speed) / 5, 5))
 
-            # 第2次转弯后，整体降速
             if trun_time >= 2:
                 dynamic_speed = int(dynamic_speed * 0.85)
 
-            # 起步缓冲限速
             if start_frames < START_BUFFER_FRAMES:
                 speed_limit = 15 + int((dynamic_speed - 15) * (start_frames / START_BUFFER_FRAMES))
                 dynamic_speed = min(dynamic_speed, speed_limit)
 
-            # 大偏移强制降速
             if abs(raw_offset) > 80:
                 dynamic_speed = min(dynamic_speed, 18)
             elif abs(raw_offset) > 50:
                 dynamic_speed = min(dynamic_speed, 22)
 
-            # 警戒状态强制锁速15
             if crossroad_alert:
                 dynamic_speed = min(dynamic_speed, 15)
 
-            # 识别到路口直接降到12
             if line_type == 3:
                 dynamic_speed = min(dynamic_speed, 12)
 
             print(f"巡线中 - 偏移: {rotate_speed}, 旋转: {smooth_rotate}, 速度: {dynamic_speed}")
             u.mecanum_move_xyz(0, dynamic_speed, -smooth_rotate)
 
-        # 丢线
         else:
             lost_line_count += 1
             start_frames = 0
@@ -298,9 +276,6 @@ def pid_find_line(u):
         time.sleep(0.05)
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  新增：从存储区返回中转区
-# ═══════════════════════════════════════════════════════════════════
 def return_to_transit_zone(u, target_store):
     """
     PID巡线返回中转区
@@ -309,22 +284,19 @@ def return_to_transit_zone(u, target_store):
     B 号存储区 → 中转区：经过 4 个十字路口
     到达中转区后函数直接 return
     """
-    LOCAL_BASE_SPEED = 22    # 基础前进速度（直线基准，转向时自动减速）
-    LOCAL_MAX_SPEED = 27     # 前进速度上限
-    LOCAL_MAX_ROTATE = 30    # 转向速度上限
-    # 独立创建PID控制器，不依赖外部PID实例
+    LOCAL_BASE_SPEED = 22
+    LOCAL_MAX_SPEED = 27
+    LOCAL_MAX_ROTATE = 30
     u.mecanum_turn_speed_times(2, 90, 173, 2)
     u.mecanum_translate_speed_times(90, 50, 8, 1)
     pid_return = u.create_pid_controller()
     pid_return.set_pid(0.12, 0.0015, 0.15)
 
-    # 常量配置
     LOST_LINE_THRESHOLD = 8
     RECOVER_FRAMES = 15
     START_BUFFER_FRAMES = 30
     CROSSROAD_CD_FRAMES = 2
 
-    # 状态变量初始化
     lost_line_count = 0
     recover_stable_count = 0
     last_rotate_speed = 0
@@ -335,7 +307,7 @@ def return_to_transit_zone(u, target_store):
     start_frames = 0
 
     finding_line = False
-    find_direction = 1  # 1顺时针 -1逆时针
+    find_direction = 1
     find_step_count = 0
 
     if target_store == "A":
@@ -344,7 +316,6 @@ def return_to_transit_zone(u, target_store):
         print("从B号存储区返回中转区")
 
     while True:
-        # 十字路口冷却计数递减，防止同一路口重复触发
         if crossroad_cd > 0:
             crossroad_cd -= 1
             u.mecanum_stop()
@@ -359,7 +330,6 @@ def return_to_transit_zone(u, target_store):
             time.sleep(0.2)
             continue
 
-        # 线路类型变化时打印提示
         if line_type != last_line_type:
             if line_type == 3:
                 print("检测到十字路口")
@@ -367,7 +337,6 @@ def return_to_transit_zone(u, target_store):
                 print("检测到T字路口")
             last_line_type = line_type
 
-        # ── 正常巡线（直线/弯道/T字路口） ──
         if line_type in (1, 2, 4):
             lost_line_count = 0
             crossroad_confirm = 0
@@ -375,38 +344,31 @@ def return_to_transit_zone(u, target_store):
             find_step_count = 0
             start_frames += 1
 
-            # 丢线恢复阶段限速
             if recover_stable_count < RECOVER_FRAMES:
                 recover_stable_count += 1
                 speed_limit = 15
             else:
                 speed_limit = max_forward_speed
 
-            # PID计算转向量 + 一阶平滑滤波
             rotate_speed = round(pid_return.update(offset))
             rotate_speed = max(min(rotate_speed, max_rotate_speed), -max_rotate_speed)
             smooth_rotate = int(last_rotate_speed * 0.4 + rotate_speed * 0.6)
             last_rotate_speed = smooth_rotate
 
-            # 动态速度：弯道减速，转向量越大速度越低
             is_curve = line_type == 2
             if is_curve:
                 dynamic_speed = int(base_forward_speed * 0.6 - min(abs(smooth_rotate) / 4, 5))
             else:
                 dynamic_speed = int(base_forward_speed - min(abs(smooth_rotate) / 4, 6))
 
-            # 起步缓冲：缓加速避免冲线
             if start_frames < START_BUFFER_FRAMES:
                 ramp_speed = 12 + int((dynamic_speed - 12) * (start_frames / START_BUFFER_FRAMES))
                 dynamic_speed = min(dynamic_speed, ramp_speed)
 
-            # 速度上下限约束
             dynamic_speed = max(min(dynamic_speed, speed_limit), 5)
             u.mecanum_move_xyz(0, dynamic_speed, -smooth_rotate)
 
-        # ── 十字路口处理 ──
         elif line_type == 3:
-            # 冷却期内跳过，防止重复计数
             if crossroad_cd > 0:
                 u.mecanum_move_xyz(0, 8, 0)
                 time.sleep(0.05)
@@ -418,7 +380,6 @@ def return_to_transit_zone(u, target_store):
                 time.sleep(0.05)
                 continue
 
-            # 确认路口，停车执行动作
             u.mecanum_stop()
             time.sleep(0.3)
             turn_count += 1
@@ -428,9 +389,6 @@ def return_to_transit_zone(u, target_store):
             start_frames = 0
             print(f"确认第 {turn_count} 个十字路口，执行对应动作")
 
-            # ═══════════════════════════════════════
-            #  A 区返回路径：共 3 个十字路口
-            # ═══════════════════════════════════════
             if target_store == "A":
                 if turn_count == 1:
                     print("第1个路口：直行后转向")
@@ -452,10 +410,7 @@ def return_to_transit_zone(u, target_store):
                     print("已返回中转区（A区路径）")
                     return
 
-            # ═══════════════════════════════════════
-            #  B 区返回路径：共 4 个十字路口
-            # ═══════════════════════════════════════
-            else:  # target_store == "B"
+            else:
                 if turn_count == 1:
                     print("第1个路口")
                     u.mecanum_move_speed_times(0, 35, 18, 1)
@@ -465,19 +420,12 @@ def return_to_transit_zone(u, target_store):
 
                 elif turn_count == 2:
                     print("第2个路口")
-                    # u.mecanum_move_speed_times(0, 40, 57, 1)
-                    # u.mecanum_turn_speed_times(2, 60, 91, 2)
-                    # time.sleep(0.5)
                     u.mecanum_move_speed_times(0, 40, 19, 1)
                     time.sleep(0.5)
                     pass
 
                 elif turn_count == 3:
                     print("第3个路口")
-                    # u.mecanum_move_speed_times(0, 35, 21, 1)
-                    # u.mecanum_stop()
-                    # time.sleep(0.5)
-                    # return
                     u.mecanum_move_speed_times(0, 40, 19, 1)
                     u.mecanum_turn_speed_times(2, 60, 90, 2)
                     time.sleep(0.5)
@@ -497,20 +445,17 @@ def return_to_transit_zone(u, target_store):
             u.mecanum_stop()
             time.sleep(0.1)
 
-        # ── 丢线找回逻辑 ──
         else:
             recover_stable_count = 0
             start_frames = 0
             lost_line_count += 1
 
             if lost_line_count < LOST_LINE_THRESHOLD:
-                # 临时丢线：低速前进，沿上次转向微调
                 u.mecanum_stop()
                 u.mecanum_move_xyz(0, 2, -int(last_rotate_speed * 0.2))
                 print(f"临时丢线，低速维持找线，连续丢帧: {lost_line_count}")
                 time.sleep(0.15)
             else:
-                # 持续丢线：左右摆动主动找线
                 if not finding_line:
                     finding_line = True
                     find_direction = 1

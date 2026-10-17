@@ -25,12 +25,10 @@ except ImportError:
     TF_AVAILABLE = False
     print("[警告] tensorflow 未安装，模型识别功能不可用")
 
-# ===== 模型路径配置 =====
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MODEL_PATH = os.path.join(_PROJECT_ROOT, 'models', 'ssd_mobilenet_v2_fpn_320.tflite')
 LABEL_MAP_PATH = os.path.join(_PROJECT_ROOT, 'models', 'label_map.pbtxt')
 
-# ===== 全局变量 =====
 _interpreter = None
 _input_details = None
 _output_details = None
@@ -38,7 +36,6 @@ _is_uint8 = False
 _label_map = {}
 _model_loaded = False
 
-# ===== 颜色识别相关 =====
 _MORPH_KERNEL = np.ones((5, 5), np.uint8)
 
 def _get_color_ranges():
@@ -58,7 +55,6 @@ def _get_color_ranges():
 
 COLOR_RANGES = _get_color_ranges()
 
-# ===== AprilTag 相关配置 =====
 TARGET_TAG_ID = None
 FRAME_WIDTH = 640
 FRAME_CENTER = FRAME_WIDTH // 2
@@ -86,7 +82,6 @@ STATE_MID_ALIGN = 2
 STATE_FINE_ALIGN = 3
 STATE_STABLE_CHECK = 4
 
-# ===== 放置相关可调参数 =====
 LABEL_AREA_THRESHOLD = 13000
 ALIGN_THRESHOLD = 18
 ALIGN_SPEED = 3
@@ -99,9 +94,6 @@ INVALID_EDGE_RATIO = 0.2
 STRICT_MIN_AREA = 2000
 
 
-# ============================================================
-#  摄像头与颜色识别
-# ============================================================
 
 def _read_camera_frame(got):
     """读取摄像头帧"""
@@ -254,7 +246,6 @@ def grasp(got, flag):
     time.sleep(0.5)
     got.mecanum_move_speed_times(0, 8, 8, 1)
     time.sleep(0.5)
-    # got.mecanum_turn_speed_times(2, 11, 1, 2)
     got.mecanum_move_speed_times(0, 5, 2, 1)
     time.sleep(0.5)
     got.mechanical_clamp_close()
@@ -271,9 +262,6 @@ def grasp(got, flag):
     time.sleep(0.5)
     got.mechanical_single_joint_control(2, 40, 150)
     time.sleep(0.5)
-    # got.mechanical_single_joint_control(2, 85, 150)
-    # time.sleep(0.5)
-    # got.mechanical_single_joint_control(3, -90, 200)
 
 
     print("抓取完成")
@@ -317,9 +305,6 @@ def grasp3(got, flag):
     time.sleep(0.5)
     got.mechanical_single_joint_control(2, 40, 150)
     time.sleep(0.5)
-    # got.mechanical_single_joint_control(2, 85, 150)
-    # time.sleep(0.5)
-    # got.mechanical_single_joint_control(3, -90, 200)
 
 
 
@@ -644,9 +629,6 @@ def get_bbox(got, target_color):
     return detected_objects, search_time, current_zone_id, flag_diction, current_zone_id
 
 
-# ============================================================
-#  AprilTag 对准
-# ============================================================
 
 def parse_tag_data(raw_data):
     """解析 AprilTag 原始返回数据"""
@@ -1083,7 +1065,6 @@ def release_block(got, target_id=None):
     got.mechanical_clamp_release()
     time.sleep(1.0)
 
-    #前进
     got.mecanum_move_speed_times(1, 10, 1, 1)
 
 
@@ -1205,7 +1186,7 @@ def search_label_and_place(got, target_id):
                         lost_frame_count = 0
                     else:
                         print("5号区无有效目标标签，向右平移搜索4号区")
-                        got.mecanum_translate_speed_times(90, 10, 26, 1)#25
+                        got.mecanum_translate_speed_times(90, 10, 26, 1)
                         time.sleep(0.5)
                         flag = 4
                 elif flag == 4:
@@ -1223,7 +1204,6 @@ def search_label_and_place(got, target_id):
                         got.mecanum_turn_speed_times(3, 90, 34, 2)
                         got.mecanum_move_speed_times(0, 10, 5, 1)
                         got.mecanum_translate_speed_times(90, 10, 3, 1)
-                        # got.mecanum_move_speed_times(0, 10, 3, 1)
                         time.sleep(1)
                         flag = 3
                         search_time = 0
@@ -1233,7 +1213,7 @@ def search_label_and_place(got, target_id):
                         target_obj = max(target_objects, key=lambda x: x['area'])
                         deviation_x = target_obj['center'][0] - center_x
                         print(f"3号区检测到有效目标标签，偏差: {deviation_x}")
-                        got.mecanum_move_speed_times(0, 30, 4, 1)#12
+                        got.mecanum_move_speed_times(0, 30, 4, 1)
                         state = "ADJUSTING_LATERAL"
                         got.mecanum_stop()
                         lost_frame_count = 0
@@ -1248,7 +1228,6 @@ def search_label_and_place(got, target_id):
                             got.mecanum_translate_speed_times(-90, 10, 3, 1)
                             got.mecanum_move_speed_times(1, 10, 8, 1)
                             got.mecanum_turn_speed_times(3, 90, 51, 2)
-                            # got.mecanum_move_speed_times(0, 10, 3, 1)
                             time.sleep(0.05)
                             print("旋转后检测目标标签")
                             for step in range(1):
@@ -1403,9 +1382,6 @@ def search_label_and_place(got, target_id):
     return detected_objects, search_time, current_zone_id, flag_diction
 
 
-# ============================================================
-#  返回中转区函数
-# ============================================================
 
 def five_store_1(got, flag):
     """
@@ -1447,9 +1423,8 @@ def five_store_1(got, flag):
         print("1号存储区抓取完成，返回中转区1")
         got.mecanum_move_speed_times(1, 60, 10, 1)
         got.mecanum_turn_speed_times(2, 60, 90, 2)
-        got.mecanum_move_speed_times(0, 60, 12, 1)#11
+        got.mecanum_move_speed_times(0, 60, 12, 1)
         got.mecanum_translate_speed_times(-90, 50, 53, 1)
-        # got.mecanum_move_speed_times(0, 60, 11, 1)
     else:
         print(f"未知 flag={flag}，不执行返回动作")
     time.sleep(0.3)
@@ -1561,9 +1536,6 @@ def align_with_apriltag(got):
     return success, tag_info
 
 
-# ============================================================
-#  主函数：7步/6步完整流程
-# ============================================================
 
 def warehouse_full_7step(got, target_color, target_store_id):
     """

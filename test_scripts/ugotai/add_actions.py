@@ -3,7 +3,6 @@ file_path = r"C:\Users\16231\Desktop\ros\gS\ugotai\zncc.py"
 with open(file_path, 'r', encoding='utf-8') as f:
     content = f.read()
 
-# 1. 在 arm_reset 后面加基础动作函数
 old_arm_end = '''    print("机器复位完成")
 
 
@@ -42,7 +41,6 @@ def align_with_apriltag(got):'''
 
 content = content.replace(old_arm_end, new_arm_end)
 
-# 2. 修改 main 函数，支持智能仓储完整流程
 old_main = '''if __name__ == "__main__":
     if len(sys.argv) < 4:
         print("用法: python zncc.py <target_color> <target_store_id> <need_return>")

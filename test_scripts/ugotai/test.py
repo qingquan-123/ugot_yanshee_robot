@@ -1,4 +1,4 @@
-# 修复Windows控制台中文闪退/无输出
+# Windows 控制台中文输出修复
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
@@ -14,45 +14,39 @@ from apriltag_opt import wttag
 tflite = tf.lite
 from ugot import ugot
 
-# ===================== 全局变量 =====================
 grasp_flag: int = 0
 got: Optional[ugot.UGOT] = None
 
-# 自定义模型相关全局变量
 interp: Optional[tflite.Interpreter] = None
 inp: Optional[dict] = None
 out: Optional[list] = None
 is_uint8: bool = False
 label_map: Dict[int, str] = {}
 
-# 视觉模式状态标记：解决模型覆盖、巡线失效问题
 _line_model_loaded = False
-_current_vision_mode = None  # 可选值: None / "raw" / "line" / "apriltag"
+_current_vision_mode = None
 
-# 文件路径
 MODEL_PATH = r"C:\Users\16231\Desktop\ros\pb_tflite\ssd_mobilenet_v2_fpn_320.tflite"
 LABEL_MAP_PATH = r"C:\Users\16231\Desktop\ros\pb_tflite\label_map.pbtxt"
 IMG_SIZE = 320
-CONF_TH = 0.5  # 标签置信度阈值
-LABEL_AREA_THRESHOLD = 14000  # 标签面积到位阈值
+CONF_TH = 0.5
+LABEL_AREA_THRESHOLD = 14000
 
-# ========== 运动参数 ==========
 FIVE_TURN_SPEED = 113
 FIVE_TURN_TIME = 186
 FIVE_TRANS_SPEED = 90
 FIVE_BACK_SPEED = 150
 
-# ========== 视觉搜索通用参数 ==========
 _MORPH_KERNEL = np.ones((5, 5), np.uint8)
-ALIGN_THRESHOLD = 18    # 对齐阈值，单位像素
-ALIGN_SPEED = 3         # 横移对齐速度
-ALIGN_DURATION = 1      # 横移对齐时长
-INVALID_EDGE_RATIO = 0.2  # 左右无效区域比例
-STRICT_MIN_AREA = 2000    # 目标最小面积阈值
-LOST_FRAME_THRESHOLD = 30 # 连续丢帧阈值
-MAX_SEARCH_TIME_THREE = 3 # 3区最大搜索次数
-MAX_INIT_FRAMES = 5       # 初始化帧数
-MAX_CAMERA_CHECKS = 5     # 摄像头重试次数
+ALIGN_THRESHOLD = 18
+ALIGN_SPEED = 3
+ALIGN_DURATION = 1
+INVALID_EDGE_RATIO = 0.2
+STRICT_MIN_AREA = 2000
+LOST_FRAME_THRESHOLD = 30
+MAX_SEARCH_TIME_THREE = 3
+MAX_INIT_FRAMES = 5
+MAX_CAMERA_CHECKS = 5
 
 
 def _get_color_ranges() -> dict:
@@ -70,7 +64,6 @@ def _get_color_ranges() -> dict:
         '蓝色': [(lower_blue, upper_blue)]
     }
 
-# 颜色范围全局常量
 COLOR_RANGES = _get_color_ranges()
 
 
@@ -96,13 +89,11 @@ def extract_task_info(task_message: str):
     chinese_num = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6}
     target_store = None
 
-    # 匹配阿拉伯数字
     for num in range(1, 7):
         if f"{num}号" in task_message:
             target_store = num
             break
 
-    # 匹配汉字数字
     if target_store is None:
         for cn_char, num in chinese_num.items():
             if f"{cn_char}号" in task_message:
@@ -439,21 +430,20 @@ def five_store(target_store, num, search_time, flag, task, flag_diction):
     print("返回初始区域完成", flush=True)
 
 
-# ===================== 第一次搜索：颜色物块搜索抓取 =====================
 def get_bbox(target_color):
     """
     颜色物块搜索+抓取（新版分区搜索框架：6→5→4→3→2→1区依次搜索）
     返回：detected_objects, search_time, flag, flag_diction
     """
     global got, _current_vision_mode
-    _current_vision_mode = "raw"  # 标记当前为原始帧模式
+    _current_vision_mode = "raw"
 
     state = "INITIALIZING"
     search_time = 0
     flag_diction = None
     init_frames = 0
     camera_check_count = 0
-    flag = 6  # 从6号区开始搜索
+    flag = 6
     detected_objects = []
     current_zone_id = None
     lost_frame_count = 0
@@ -477,7 +467,6 @@ def get_bbox(target_color):
             height, width = data.shape[:2]
             center_x = width // 2
 
-            # 非1/6号区启用有效区域过滤+面积过滤
             if flag not in (1, 6):
                 valid_left = width * INVALID_EDGE_RATIO
                 valid_right = width * (1 - INVALID_EDGE_RATIO)
@@ -488,7 +477,6 @@ def get_bbox(target_color):
                        and obj['area'] >= strict_area
                 ]
 
-            # 状态1：初始化
             if state == "INITIALIZING":
                 init_frames += 1
                 print(f"摄像头初始化中... ({init_frames}/{MAX_INIT_FRAMES})", flush=True)
@@ -496,7 +484,6 @@ def get_bbox(target_color):
                     print("摄像头初始化完成，开始搜索 6 号区目标", flush=True)
                     state = "FINDING_TARGET"
 
-            # 状态2：搜索目标
             elif state == "FINDING_TARGET":
                 if flag == 6:
                     if target_objects:
@@ -621,7 +608,6 @@ def get_bbox(target_color):
                         step_speed = 5
                         step_duration = 2
 
-                        # 向右搜索3次
                         for step in range(3):
                             print(f"1号区右移搜索 第{step+1}/3次", flush=True)
                             got.mecanum_translate_speed_times(90, step_speed, step_duration, 0)
@@ -646,7 +632,6 @@ def get_bbox(target_color):
                         if found_target:
                             continue
 
-                        # 向左搜索5次
                         print("右移3次未找到目标，切换向左平移搜索，共5次", flush=True)
                         for step in range(5):
                             print(f"1号区左移搜索 第{step+1}/5次", flush=True)
@@ -677,7 +662,6 @@ def get_bbox(target_color):
                         state = "COMPLETED"
                         break
 
-            # 状态3：左右对齐
             elif state == "ADJUSTING_LATERAL":
                 if not target_objects:
                     lost_frame_count += 1
@@ -709,18 +693,15 @@ def get_bbox(target_color):
                     flag_diction = "right" if deviation_x > 0 else "left"
                     got.mecanum_stop()
 
-                    # 机械臂预备姿态
                     got.mechanical_single_joint_control(3, -70, 100)
                     got.mechanical_single_joint_control(2, -25, 100)
                     time.sleep(0.05)
                     got.mechanical_clamp_release()
                     time.sleep(0.05)
 
-                    # 3号区额外前进补偿
                     if current_zone_id == 3:
                         got.mecanum_move_speed_times(0, 30, 12, 1)
 
-                    # 前进到位并抓取
                     go_forward(target_color, speed=5)
                     if current_zone_id == 3:
                         grasp3(got, current_zone_id)
@@ -747,7 +728,6 @@ def get_bbox(target_color):
     return detected_objects, search_time, current_zone_id if current_zone_id else flag, flag_diction
 
 
-# ===================== 第二次搜索：标签存储区搜索放货 =====================
 def search_label_and_place(target_id):
     """
     标签存储区搜索+放货（与get_bbox同框架：6→5→4→3→2→1区依次搜索）
@@ -762,7 +742,7 @@ def search_label_and_place(target_id):
     flag_diction = None
     init_frames = 0
     camera_check_count = 0
-    flag = 6  # 从6号区开始搜索
+    flag = 6
     detected_objects = []
     current_zone_id = None
     lost_frame_count = 0
@@ -786,7 +766,6 @@ def search_label_and_place(target_id):
             height, width = data.shape[:2]
             center_x = width // 2
 
-            # 非1/6号区启用有效区域过滤+面积过滤
             if flag not in (1, 6):
                 valid_left = width * INVALID_EDGE_RATIO
                 valid_right = width * (1 - INVALID_EDGE_RATIO)
@@ -797,7 +776,6 @@ def search_label_and_place(target_id):
                        and obj['area'] >= strict_area
                 ]
 
-            # 状态1：初始化
             if state == "INITIALIZING":
                 init_frames += 1
                 print(f"模型检测初始化中... ({init_frames}/{MAX_INIT_FRAMES})", flush=True)
@@ -805,7 +783,6 @@ def search_label_and_place(target_id):
                     print("初始化完成，开始搜索 6 号区标签", flush=True)
                     state = "FINDING_TARGET"
 
-            # 状态2：搜索目标
             elif state == "FINDING_TARGET":
                 if flag == 6:
                     if target_objects:
@@ -930,7 +907,6 @@ def search_label_and_place(target_id):
                         step_speed = 5
                         step_duration = 2
 
-                        # 向右搜索3次
                         for step in range(3):
                             print(f"1号区右移搜索 第{step+1}/3次", flush=True)
                             got.mecanum_translate_speed_times(90, step_speed, step_duration, 0)
@@ -955,7 +931,6 @@ def search_label_and_place(target_id):
                         if found_target:
                             continue
 
-                        # 向左搜索5次
                         print("右移3次未找到标签，切换向左平移搜索，共5次", flush=True)
                         for step in range(5):
                             print(f"1号区左移搜索 第{step+1}/5次", flush=True)
@@ -986,7 +961,6 @@ def search_label_and_place(target_id):
                         state = "COMPLETED"
                         break
 
-            # 状态3：左右对齐
             elif state == "ADJUSTING_LATERAL":
                 if not target_objects:
                     lost_frame_count += 1
@@ -1018,7 +992,6 @@ def search_label_and_place(target_id):
                     flag_diction = "right" if deviation_x > 0 else "left"
                     got.mecanum_stop()
 
-                    # 前进到位并放货
                     print("前进靠近存储区", flush=True)
                     go_forward_label(target_id, speed=6)
                     release_block()
@@ -1051,7 +1024,6 @@ def reset_line_vision(got):
     global _line_model_loaded, _current_vision_mode
     print("============================ 巡线视觉复位 ===========================", flush=True)
 
-    # 先关闭摄像头，清空原始帧占用
     try:
         got.close_camera()
         time.sleep(0.12)
@@ -1060,7 +1032,6 @@ def reset_line_vision(got):
     got.open_camera()
     time.sleep(0.15)
 
-    # 只有当前不是巡线模式时，才重新加载模型
     if _current_vision_mode != "line":
         print("当前非巡线模式，重新加载巡线模型...", flush=True)
         got.load_models(["line_recognition"])
@@ -1092,11 +1063,9 @@ def _reset_robot_camera(got):
         time.sleep(0.3)
         got.open_camera()
         time.sleep(0.3)
-        # 加载巡线模型，触发内置AI服务启动
         got.load_models(["line_recognition"])
         _current_vision_mode = "line"
         time.sleep(0.3)
-        # 最后关闭，留给后续流程自由初始化
         got.close_camera()
         time.sleep(0.2)
         print("摄像头状态复位完成", flush=True)
@@ -1110,17 +1079,14 @@ def main():
 
     print("=== UGOT 语音控制物块分拣系统 ===", flush=True)
     try:
-        # 1. 连接机器人 + 前置复位摄像头（解决上次残留导致语音失效）
         print("连接机器人...", flush=True)
         got = ugot.UGOT()
         got.initialize('10.233.104.242')
         print("机器人连接成功", flush=True)
         got.set_volume(100)
 
-        # 关键：启动先复位摄像头状态，保证语音识别可用
         _reset_robot_camera(got)
 
-        # 2. 语音识别获取任务（此时摄像头已复位，语音正常）
         print("\n【开始语音识别】", flush=True)
         got.play_audio_tts("开始获取任务", 0, True)
         task_msg = got.start_audio_asr()
@@ -1136,7 +1102,6 @@ def main():
             got.play_audio_tts("识别失败，请重新下达指令", 0, False)
             return
 
-        # 3. 加载自定义TFLite模型（CPU多线程模式，避开CUDA卡死）
         if not os.path.exists(MODEL_PATH):
             raise FileNotFoundError(f"找不到模型文件：{MODEL_PATH}")
         if not os.path.exists(LABEL_MAP_PATH):
@@ -1157,7 +1122,6 @@ def main():
         is_uint8 = inp['dtype'] == np.uint8
         print("模型加载完成", flush=True)
 
-        # 4. 打开摄像头，切换为原始帧模式，用于自定义视觉检测
         print("打开摄像头...", flush=True)
         got.open_camera()
         time.sleep(1)
@@ -1170,13 +1134,10 @@ def main():
         got.mechanical_single_joint_control(2, -40, 100)
         time.sleep(0.5)
 
-        # 5. 执行完整任务流程
         print(f"\n开始执行：抓取{target_color}物块 → 放置{target_store}号存储区", flush=True)
 
-        # 第一步：搜索并抓取物块
         detected_objs, search_time, flag, flag_diction = get_bbox(target_color)
 
-        # 第二步：返回中转区域
         five_store(
             target_store=target_store,
             num=1,
@@ -1192,7 +1153,6 @@ def main():
 
         search_label_and_place(target_store)
 
-        # 6. 任务完成
         finish_text = f"任务完成，{target_color}物块已放到{target_store}号存储区"
         print(f"\n{finish_text}", flush=True)
         got.play_audio_tts("任务完成", 0, False)
@@ -1211,7 +1171,6 @@ def main():
         if got:
             got.mecanum_stop()
             try:
-                # 关键：退出时彻底复位摄像头，切回内置模式，保证下次语音正常
                 _reset_robot_camera(got)
             except Exception as e:
                 print(f"退出复位异常: {e}", flush=True)

@@ -4,18 +4,16 @@ import numpy as np
 
 got = None  # 延迟初始化，由调用方传入，避免 import 时就连接机器人
 
-# ============距离维持控制参数============
-TARGET_AREA = 30000  # 目标像素中间值
-AREA_LOW = 25000  # 下限
-AREA_HIGH = 35000  # 上限
+TARGET_AREA = 30000
+AREA_LOW = 25000
+AREA_HIGH = 35000
 Kp = 0.0008
 MAX_SPEED = 5
 MIN_SPEED = 5
 
-# ============对齐稳定判定参数============
-STABLE_FRAMES = 1  # 连续多少帧在区间内算对齐完成
-stable_count = 0  # 当前连续稳定帧数
-last_track_color = None  # 记录上一帧追踪的颜色，切换颜色时清零稳定计数
+STABLE_FRAMES = 1
+stable_count = 0
+last_track_color = None
 
 
 def get_color_ranges():
@@ -82,7 +80,6 @@ def get_largest_color_object(color_info):
     if not all_objects:
         return None
 
-    # 按面积降序排序，取最大的
     all_objects.sort(key=lambda x: x["area"], reverse=True)
     return all_objects[0]
 
@@ -97,17 +94,14 @@ def calc_move_speed(current_area):
     error = TARGET_AREA - current_area
     speed = Kp * error
 
-    # 死区，区间内直接停止
     if AREA_LOW <= current_area <= AREA_HIGH:
         return (False, 0, 0)
 
     if speed > 0:
-        # 前进
         spd_val = int(speed)
         spd_val = max(MIN_SPEED, min(spd_val, MAX_SPEED))
         return (True, 0, spd_val)
     else:
-        # 后退
         spd_val = int(-speed)
         spd_val = max(MIN_SPEED, min(spd_val, MAX_SPEED))
         return (True, 1, spd_val)
@@ -142,7 +136,6 @@ def wt(got=None):
                 target_area = target["area"]
                 enable, direction, spd = calc_move_speed(target_area)
 
-                # 颜色切换时，清零稳定计数
                 if target_color != last_track_color:
                     stable_count = 0
                     last_track_color = target_color
@@ -151,13 +144,12 @@ def wt(got=None):
                     f"追踪颜色:{target_color.upper():6s} | 像素:{target_area:6d} | 区间[{AREA_LOW},{AREA_HIGH}] | dir={direction} spd={spd} | 稳定帧:{stable_count}/{STABLE_FRAMES}")
 
                 if enable:
-                    stable_count = 0  # 还在运动，清零稳定计数
+                    stable_count = 0
                     got.mecanum_move_speed_times(direction, spd, 1, 1)
                 else:
-                    stable_count += 1  # 进入目标区间，累计稳定帧
+                    stable_count += 1
                     got.mecanum_move_speed_times(0, 0, 1, 1)
 
-                    # 连续稳定足够帧数 → 对齐完成
                     if stable_count >= STABLE_FRAMES:
                         print(f"✅ 已对齐最大色块[{target_color.upper()}]，距离稳定，退出对准")
                         got.mecanum_move_speed_times(0, 0, 3, 1)
@@ -175,7 +167,6 @@ def wt(got=None):
         return False
 
 
-# ============主流程：对齐 → 下一个动作============
 if __name__ == "__main__":
     got = ugot.UGOT()
     got.initialize('10.233.104.242')

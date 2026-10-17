@@ -4,13 +4,11 @@ import YanAPI
 
 YanAPI.yan_api_init("127.0.0.1")
 
-# ====================== 动作配置 ======================
 def move_left():
     YanAPI.sync_play_motion("te_left_1_S6")
 
 def move_right():
     YanAPI.sync_play_motion("te_right_S4")
-# =====================================================
 
 def tts(content):
     try:
@@ -57,7 +55,6 @@ def translate(target_id=2, align_threshold=0.02, auto_break=True):
                 tag_id = tag_info["id"]
                 pos_x = tag_info.get("position-x", None)
 
-                # 非目标标签：仅提示，不调整
                 if tag_id != target_id:
                     if tag_id != last_spoken_id:
                         print("识别到{}号标签，非目标，跳过调整".format(tag_id))
@@ -66,7 +63,6 @@ def translate(target_id=2, align_threshold=0.02, auto_break=True):
                     time.sleep(0.2)
                     continue
 
-                # 目标标签数据校验
                 if pos_x is None:
                     print("目标tag识别到，但没有位姿数据，跳过本次")
                     time.sleep(0.2)
@@ -74,13 +70,11 @@ def translate(target_id=2, align_threshold=0.02, auto_break=True):
 
                 print("目标TagID:{}  position-x:{:.4f}".format(tag_id, pos_x))
 
-                # 播报逻辑
                 if tag_id != last_spoken_id:
                     speak_text = "识别到目标标签，编号{}".format(tag_id)
                     print(speak_text)
                     last_spoken_id = tag_id
 
-                # 左右对准逻辑
                 if pos_x > align_threshold:
                     if translate_count >= MAX_TRANSLATE:
                         print("平移已达{}次，停止".format(MAX_TRANSLATE))

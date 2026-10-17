@@ -5,10 +5,9 @@ import ast
 from api_config import *
 import qianfan
 
-# 千帆配置
 os.environ["QIANFAN_ACCESS_KEY"] = QIANFAN_ACCESS_KEY
 os.environ["QIANFAN_SECRET_KEY"] = QIANFAN_SECRET_KEY
-MODEL = "DeepSeek-V4-Flash"  # 已开通可用的轻量模型；原 ERNIE-Speed-8K 为旧模型未在预置列表中
+MODEL = "DeepSeek-V4-Flash"  # 已开通可用的轻量模型
 chat_comp = qianfan.ChatCompletion(model=MODEL)
 
 # ---- 熔断状态：连续失败达到阈值后，本次会话直接走本地兜底 ----

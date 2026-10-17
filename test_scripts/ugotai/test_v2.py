@@ -20,35 +20,23 @@ except ImportError:
 
 from ugot import ugot
 
-# ====================== 可调参数 ======================
-# 面积阈值逻辑：
-#   < 9000         : 前进EXTRA_1 cm继续找
-#   9000~12000     : 先前进EXTRA_2 cm，再放下
-#   12000~15000    : 先前进EXTRA_3 cm，再放下
-#   15000~17000    : 先前进EXTRA_4 cm，再放下
-#   17000~21000    : 先前进EXTRA_5 cm，再放下
-#   > 21000        : 后退BACKWARD_DISTANCE cm
-AREA_1 = 9000              # 第一档
-AREA_2 = 11000             # 第二档
-AREA_3 = 15000             # 第三档
-AREA_4 = 17000             # 第四档
-AREA_5 = 21000             # 上限
+AREA_1 = 9000
+AREA_2 = 11000
+AREA_3 = 15000
+AREA_4 = 17000
+AREA_5 = 21000
 
-# 前进参数
-FORWARD_SPEED = 5           # 前进速度
-SETTLE_DELAY = 0.3          # 移动后等待画面稳定时间（秒）
+FORWARD_SPEED = 5
+SETTLE_DELAY = 0.3
 
-# 各档位前进距离（厘米）
-EXTRA_1 = 5                 # <9000每次前进距离
-EXTRA_2 = 4                 # 9000~12000放下前前进
-EXTRA_3 = 3                 # 12000~15000放下前前进
-EXTRA_4 = 2                 # 15000~17000放下前前进
-EXTRA_5 = 1                 # 17000~21000放下前前进
+EXTRA_1 = 5
+EXTRA_2 = 4
+EXTRA_3 = 3
+EXTRA_4 = 2
+EXTRA_5 = 1
 
-# 超过上限后退
-BACKWARD_DISTANCE = 6       # >21000时后退距离（厘米）
+BACKWARD_DISTANCE = 6
 
-# ====================================================
 
 ROBOT_IP = '10.233.104.242'
 MODEL_PATH = r'C:\Users\16231\Desktop\ros\pb_tflite\ssd_mobilenet_v2_fpn_320.tflite'
@@ -131,7 +119,6 @@ def main():
     got.initialize(ROBOT_IP)
     print("机器人连接成功")
 
-    # 机器复位
     print("机器复位...")
     got.mechanical_clamp_release()
     time.sleep(1.0)
@@ -142,19 +129,15 @@ def main():
     got.mechanical_single_joint_control(1, 0, 350)
     time.sleep(1.0)
 
-    # 等3秒
     print("等待3秒...")
     time.sleep(3)
 
-    # 爪子夹紧
     print("爪子夹紧")
     got.mechanical_clamp_close()
     time.sleep(1.5)
 
-    # 加载模型
     init_model()
 
-    # 打开摄像头
     print("打开摄像头...")
     got.open_camera()
     time.sleep(1)
@@ -184,7 +167,6 @@ def main():
                 time.sleep(SETTLE_DELAY)
                 continue
 
-            # 取面积最大的标签
             target = max(labels, key=lambda x: x['area'])
             area = target['area']
             label_id = target['label_id']
@@ -198,7 +180,6 @@ def main():
                 print(f"标签{label_id} 面积: {area}，停止前进")
                 got.mecanum_stop()
 
-                # 根据档位决定放下前先前进多少
                 extra = 0
                 if area <= AREA_2:
                     extra = EXTRA_2
@@ -218,7 +199,6 @@ def main():
                     time.sleep(0.5)
                     got.mecanum_stop()
 
-                # 放下物块
                 print("释放物块...")
                 got.mechanical_single_joint_control(3, 16, 150)
                 time.sleep(0.5)

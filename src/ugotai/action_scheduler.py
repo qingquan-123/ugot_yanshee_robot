@@ -18,7 +18,6 @@ import numpy as np
 from color import grab_color_block_full, detect_color_objects, color_ranges
 
 
-# ========== 全局初始化 ==========
 u = ugot.UGOT()
 u.initialize("10.233.104.242")
 u.open_camera()
@@ -33,15 +32,12 @@ u.load_models([
 time.sleep(2)
 
 
-# ========== 公共配置 ==========
 # tf-od 环境 python 路径（所有视觉脚本都在这个环境下运行）
 TF_PYTHON = r"C:\Users\16231\anaconda3\envs\tf-od\python.exe"
-# 脚本所在目录
 import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-# ========== 工具函数 ==========
 def safe_int(val, default=0):
     try:
         return int(float(val))
@@ -55,7 +51,6 @@ def safe_str(val, default=""):
         return default
 
 
-# ========== 基础移动函数 ==========
 def move_forward(distance=30):
     """前进指定厘米"""
     d = safe_int(distance, 30)
@@ -129,7 +124,6 @@ def move_right(distance=30):
         return False
 
 
-# ========== 机械臂控制 ==========
 def release_block_action():
     """释放色块动作"""
     print("释放色块")
@@ -179,7 +173,6 @@ def arm_reset():
     time.sleep(1)
 
 
-# ========== 屏幕与音效 ==========
 def show_emotion(emotion="高兴"):
     """显示表情"""
     emo_map = {
@@ -281,7 +274,6 @@ def clear_screen():
         return False
 
 
-# ========== 视觉识别函数 ==========
 def _recognize_single(recognize_func, name, max_attempts=30):
     """通用单类别识别+旋转寻找框架"""
     for i in range(max_attempts):
@@ -330,8 +322,6 @@ def recognize_apriltag():
     return _recognize_single(_detect, "标签")
 
 
-# ========== AprilTag 对准（带捷径分支） ==========
-# 配置参数（标准值，不额外修改）
 APRIL_FRAME_WIDTH = 640
 APRIL_FRAME_CENTER = APRIL_FRAME_WIDTH // 2
 APRIL_COARSE_THRESHOLD = 50
@@ -405,7 +395,6 @@ def align_apriltag(target_id=None):
                     time.sleep(0.1)
                     continue
 
-                # 【新增捷径分支】偏差已在精对准范围内，直接跳过所有调整阶段
                 offset = tag["center_x"] - APRIL_FRAME_CENTER
                 if abs(offset) <= APRIL_FINE_THRESHOLD:
                     print(f"[AprilTag搜索] 识别到目标标签 ID={tag['id']}，偏差 {offset:+.0f}px ≤ {APRIL_FINE_THRESHOLD}px，停转后直接进入稳定确认（跳过粗/中/精对准）")
@@ -515,7 +504,6 @@ def recognize_color():
     return _recognize_single(_detect, "色块")
 
 
-# ========== 陪伴对话模式（大模型可能拆成 chat_mode + 表情 + 音效 + 灯） ==========
 
 def chat_mode(times=2, repeat=False):
     """
@@ -580,7 +568,6 @@ def chat_mode(times=2, repeat=False):
     for i in range(t):
         print(f"\n  --- 第 {i+1}/{t} 次对话 ---")
 
-        # 提示用户说话
         try:
             u.play_audio_tts(f"第{i+1}次对话，你说", 0, True)
         except:
@@ -608,10 +595,8 @@ def chat_mode(times=2, repeat=False):
                 pass
             continue
 
-        # 屏幕显示用户说的话
         display_text_on_screen(user_text)
 
-        # 大模型生成回答
         if LLM_READY:
             try:
                 # 千帆模型不支持system角色作为第一条消息，把系统提示拼到user消息里
@@ -636,16 +621,13 @@ def chat_mode(times=2, repeat=False):
 
         print(f"  机器人回答：{answer}")
 
-        # 语音播报回答
         try:
             u.play_audio_tts(answer, 0, True)
         except Exception as e:
             print(f"  语音播报失败: {e}")
 
-        # 屏幕显示回答
         display_text_on_screen(answer)
 
-        # 重复回答
         if rep:
             time.sleep(0.5)
             try:
@@ -783,7 +765,6 @@ def chat_once(question="你还好吗？需要帮助吗？"):
     return answer
 
 
-# ========== 四大场景任务（调度器：调用外部脚本） ==========
 
 def _run_script(script_name, args):
     """
@@ -832,7 +813,6 @@ def smart_warehouse_task(pre_rotate, forward_dist, target_color, target_pos, bac
     print(f" 前置转圈{pre_rotate}° | 前进{forward_dist}cm | 抓取{target_color} | 放置{target_pos}号 | 后退{backward_dist}cm | 转向{rotate_angle}度 | {'7步(返回)' if need_return else '6步(不返回)'}")
     print("=" * 50)
 
-    # smart_warehouse.py smart_warehouse 模式参数：smart_warehouse 前置转圈 前进cm 颜色 放置号 后退cm 转向角 是否返回
     return _run_script("smart_warehouse.py", ["smart_warehouse", str(pre_rotate), str(forward_dist), target_color, str(target_pos), str(backward_dist), str(rotate_angle), str(need_return)])
 
 
@@ -853,7 +833,6 @@ def smart_companion_task(chat_times, emotion, sound, light_color, light_duration
     print(f" 对话{chat_times}次 | 表情{emotion} | 音效{sound} | {light_color}呼吸灯{light_duration}秒 | 重复:{repeat}")
     print("=" * 50)
 
-    # smart_companion.py 参数：chat_times emotion sound light_color light_duration repeat
     return _run_script("smart_companion.py", [chat_times, emotion, sound, light_color, light_duration, repeat])
 
 
@@ -872,7 +851,6 @@ def smart_detective_task(sequence=None):
     print(f" 识别顺序: {' → '.join(sequence)}")
     print("=" * 50)
 
-    # smart_recon.py 参数：识别顺序（用逗号分隔的字符串）
     seq_str = ",".join(sequence)
     return _run_script("smart_recon.py", [seq_str])
 
@@ -905,7 +883,6 @@ def geometry_task(action_seq):
     return _run_script("smart_geometry.py", [action_seq])
 
 
-# ========== 动作执行引擎 ==========
 def execute_action(action_str):
     """执行单条动作字符串，安全解析调用"""
     try:
@@ -925,19 +902,16 @@ def execute_action(action_str):
             quote_char = ''
             cur = ''
             for ch in params_str:
-                # 引号状态跟踪（双引号或单引号）
                 if ch in ('"', "'") and not in_quote:
                     in_quote = True
                     quote_char = ch
                 elif ch == quote_char and in_quote:
                     in_quote = False
                     quote_char = ''
-                # 方括号深度跟踪（只在引号外生效）
                 elif ch == '[' and not in_quote:
                     depth += 1
                 elif ch == ']' and not in_quote:
                     depth -= 1
-                # 逗号分割（只在方括号外且引号外生效）
                 if ch == ',' and depth == 0 and not in_quote:
                     parts.append(cur)
                     cur = ''
@@ -957,7 +931,6 @@ def execute_action(action_str):
                 else:
                     params.append(_parse_param(p))
 
-        # 调用函数
         if func_name in globals():
             func = globals()[func_name]
             func(*params)
@@ -999,7 +972,6 @@ def execute_action_list(action_list):
     return success
 
 
-# ========== 初始化 ==========
 def initialize_robot():
     """机器人初始化"""
     print(" 机器人初始化中...")

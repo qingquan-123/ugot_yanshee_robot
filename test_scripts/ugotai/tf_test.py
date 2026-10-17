@@ -13,22 +13,19 @@ import cv2
 import numpy as np
 from ugot import ugot
 
-# ==================== 配置 ====================
 ROBOT_IP = '10.233.104.242'
 MODEL_PATH = r'C:\Users\16231\Desktop\ros\pb_tflite\ssd_mobilenet_v2_fpn_320.tflite'
 LABEL_MAP_PATH = r'C:\Users\16231\Desktop\ros\pb_tflite\label_map.pbtxt'
 
-MIN_CONFIDENCE = 0.5      # 最低置信度
-BROADCAST_COOLDOWN = 5    # 同一个标签播报冷却时间（秒）
-FRAME_INTERVAL = 0.1      # 识别间隔（秒）
+MIN_CONFIDENCE = 0.5
+BROADCAST_COOLDOWN = 5
+FRAME_INTERVAL = 0.1
 
-# 标签ID转中文
 LABEL_ZH = {
     'one': '一号区', 'two': '二号区', 'three': '三号区',
     'four': '四号区', 'five': '五号区', 'six': '六号区'
 }
 
-# ==================== 全局变量 ====================
 _interpreter = None
 _input_details = None
 _output_details = None
@@ -37,7 +34,6 @@ _label_map = {}
 _model_loaded = False
 
 
-# ==================== 模型加载 ====================
 def load_label_map(pbtxt_path):
     """加载 label_map.pbtxt，返回 {id: name}"""
     label_map = {}
@@ -67,7 +63,6 @@ def init_tflite_model():
     if _model_loaded:
         return True
 
-    # 延迟导入 tensorflow，避免 ugot 环境报错
     try:
         import tensorflow as tf
         tflite = tf.lite
@@ -96,7 +91,6 @@ def init_tflite_model():
         return False
 
 
-# ==================== 识别 ====================
 def detect_labels(frame, min_conf=MIN_CONFIDENCE):
     """
     用 TFLite 模型检测画面中的区域标签
@@ -106,21 +100,17 @@ def detect_labels(frame, min_conf=MIN_CONFIDENCE):
         return []
 
     try:
-        # 1. 图像预处理：BGR→RGB→resize到320
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         small = cv2.resize(rgb, (320, 320))
 
-        # 2. 根据模型输入类型构造张量
         if _is_uint8:
             tensor = np.expand_dims(small, 0)
         else:
             tensor = np.expand_dims(small.astype(np.float32) / 255.0, 0)
 
-        # 3. 推理
         _interpreter.set_tensor(_input_details['index'], tensor)
         _interpreter.invoke()
 
-        # 4. 解析输出
         boxes = _interpreter.get_tensor(_output_details[0]['index'])[0]
         scores = _interpreter.get_tensor(_output_details[1]['index'])[0]
         count = int(_interpreter.get_tensor(_output_details[2]['index'])[0])
@@ -131,7 +121,7 @@ def detect_labels(frame, min_conf=MIN_CONFIDENCE):
         for i in range(count):
             if scores[i] < min_conf:
                 continue
-            label_id = int(classes[i]) + 1  # TFLite输出从0开始，label_map从1开始
+            label_id = int(classes[i]) + 1
             label_name = _label_map.get(label_id, f"ID{label_id}")
             ymin, xmin, ymax, xmax = boxes[i]
             x1 = int(xmin * w)
@@ -156,7 +146,6 @@ def detect_labels(frame, min_conf=MIN_CONFIDENCE):
         return []
 
 
-# ==================== 主流程 ====================
 def main():
     print("=" * 50)
     print("  区域标签识别测试脚本")
@@ -166,19 +155,16 @@ def main():
     print(f"  播报冷却: {BROADCAST_COOLDOWN}秒")
     print("=" * 50)
 
-    # 1. 连接机器人
     print("\n[1/3] 连接机器人...")
     got = ugot.UGOT()
     got.initialize(ROBOT_IP)
     print("      连接成功")
 
-    # 2. 打开摄像头
     print("\n[2/3] 打开摄像头...")
     got.open_camera()
     time.sleep(0.5)
     print("      摄像头已开启")
 
-    # 3. 加载模型
     print("\n[3/3] 加载TFLite模型...")
     if not init_tflite_model():
         print("模型加载失败，程序退出")
@@ -186,17 +172,14 @@ def main():
         return
     print("      模型加载完成")
 
-    # 播报就绪
     got.play_audio_tts("标签识别已就绪", 0, True)
     print("\n开始循环识别（按 Ctrl+C 退出）...\n")
 
-    # 4. 循环识别
-    last_broadcast = {}  # {label_name: 上次播报时间戳}
+    last_broadcast = {}
     frame_count = 0
 
     try:
         while True:
-            # 读取摄像头帧
             frame_data = got.read_camera_data()
             if frame_data is None:
                 time.sleep(0.1)
@@ -210,11 +193,9 @@ def main():
 
             frame_count += 1
 
-            # 识别
             results = detect_labels(frame)
 
             if results:
-                # 取置信度最高的
                 best = max(results, key=lambda x: x['score'])
                 label_zh = LABEL_ZH.get(best['label_name'], best['label_name'])
 
@@ -223,7 +204,6 @@ def main():
                       f"中心: ({best['center_x']}, {best['center_y']}), "
                       f"面积: {best['area']}px²)")
 
-                # 播报（带冷却）
                 now = time.time()
                 last_time = last_broadcast.get(best['label_name'], 0)
                 if now - last_time >= BROADCAST_COOLDOWN:

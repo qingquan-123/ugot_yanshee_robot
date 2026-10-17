@@ -4,14 +4,11 @@ import numpy as np
 import time
 from ugot import ugot
 
-# ==================== 配置参数 ====================
 ROBOT_IP = '10.233.104.242'
-MIN_AREA = 500          # 最小识别面积（像素），过滤噪点
-PRINT_INTERVAL = 0.2    # 打印间隔（秒），避免刷屏太快
+MIN_AREA = 500
+PRINT_INTERVAL = 0.2
 
-# 形态学核
 _MORPH_KERNEL = np.ones((5, 5), np.uint8)
-# ==================================================
 
 def _get_color_ranges():
     """HSV颜色阈值（与原抓取逻辑完全一致）"""
@@ -54,16 +51,13 @@ def detect_color_objects(frame, min_area=MIN_AREA):
     result = {}
 
     for color_name, ranges in COLOR_RANGES.items():
-        # 生成掩膜
         mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
         for lower, upper in ranges:
             mask = cv2.bitwise_or(mask, cv2.inRange(hsv, lower, upper))
 
-        # 形态学去噪
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, _MORPH_KERNEL)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, _MORPH_KERNEL)
 
-        # 查找轮廓
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         obj_list = []
         for contour in contours:
@@ -77,7 +71,6 @@ def detect_color_objects(frame, min_area=MIN_AREA):
                     "area": int(area),
                     "rect": (x, y, w, h)
                 })
-        # 按面积从大到小排序
         obj_list.sort(key=lambda x: x["area"], reverse=True)
         result[color_name] = obj_list
 
@@ -108,10 +101,8 @@ def main():
                 time.sleep(0.1)
                 continue
 
-            # 执行颜色检测
             color_result = detect_color_objects(frame)
 
-            # 控制打印频率
             now = time.time()
             if now - last_print_time >= PRINT_INTERVAL:
                 last_print_time = now

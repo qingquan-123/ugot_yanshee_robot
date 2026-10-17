@@ -25,7 +25,6 @@ def tts(content):
     except Exception as e:
         print("播报失败：", str(e))
 
-# ========== AprilTag对准函数 ==========
 def move_left():
     YanAPI.sync_play_motion("te_left_1_S7")
 
@@ -317,8 +316,6 @@ def run_detect_face():
             print("no face")
 
 
-# ========== 摄像头色块检测函数 ==========
-# ========== 色块检测配置 ==========
 COLOR_RANGE = {
     "红色": [
         (np.array([0, 60, 40]), np.array([10, 255, 255])),
@@ -412,25 +409,19 @@ def open_camera(duration=4):
     cv2.destroyAllWindows()
     print("摄像头已关闭")
 
-# ========== 移动动作函数 ==========
 def move_to_A_area():
     print("go A")
     YanAPI.sync_play_motion("restoration_h_05")
 
-#==============================================================================
-    #改2
     YanAPI.sync_play_motion("trte_L_J_big_18b")
     YanAPI.sync_play_motion("te_left_1_805")
     YanAPI.sync_play_motion("te_left_1_805")
     YanAPI.sync_play_motion("te_left_1_805")
 
 
-#==============================================================================
-    #改3
     YanAPI.sync_play_motion("A_walk_01_909B")
 
 
-#=============================================================================
     YanAPI.sync_play_motion("trte_L_J_big_09A")
     YanAPI.sync_play_motion("te_left_1_01")
     YanAPI.sync_play_motion("te_left_1_01")
@@ -456,21 +447,16 @@ def move_to_B_area():
     YanAPI.sync_play_motion("restoration_h_05")
 
 
-#======================================================================================
-    #改4
     YanAPI.sync_play_motion("trte_L_J_big_18b")
     YanAPI.sync_play_motion("te_left_1_805")
     YanAPI.sync_play_motion("te_left_1_805")
     YanAPI.sync_play_motion("te_left_1_805")
 
-#=====================================================================================
-    #改5
 
 
     YanAPI.sync_play_motion("A_start_all_l")
 
 
-#===================================================================================
     YanAPI.sync_play_motion("A_walk_J_02_909A")
     translate(target_id=0)
     YanAPI.sync_play_motion("trte_L_J_big_09A")
@@ -508,7 +494,6 @@ def move_from_A_to_red_area():
     YanAPI.sync_play_motion("turn_r_90_Am3")
     YanAPI.sync_play_motion("clamp_back_924B")
     tat(target_id=1)
-    # YanAPI.sync_play_motion("A_walk_J_02_b")
     YanAPI.sync_play_motion("A_walk_J_02_916A")
     YanAPI.sync_play_motion("let_go2")
     print("已到达红色区域并投放")
@@ -557,9 +542,8 @@ def move_from_B_to_green_area():
     print("已到达绿色区域并投放")
 
 
-def move_from_red_to_Aarea():#红到A柱子
+def move_from_red_to_Aarea():
     print("red to A")
-    # 你已写好的动作序列
     translate(target_id=1)
     YanAPI.sync_play_motion("te_left_1_805")
     YanAPI.sync_play_motion("te_left_1_805")
@@ -583,9 +567,8 @@ def move_from_red_to_Aarea():#红到A柱子
     YanAPI.sync_play_motion("te_right_914A")
     YanAPI.sync_play_motion("trte_R_J_big_03")
 
-def move_from_green_to_Aarea():#绿到A柱子
+def move_from_green_to_Aarea():
     print("green to A")
-    # 你已写好的动作序列
     YanAPI.sync_play_motion("trte_R_J_big_04t")
     translate(target_id=1)
     YanAPI.sync_play_motion("te_left_1_805")
@@ -612,9 +595,8 @@ def move_from_green_to_Aarea():#绿到A柱子
     YanAPI.sync_play_motion("trte_R_J_big_03")
 
 
-def move_from_blue_to_Aarea():#蓝到A柱子
+def move_from_blue_to_Aarea():
     print("blue to A")
-    # 你已写好的动作序列
     YanAPI.sync_play_motion("trte_R_J_big_04t")
     YanAPI.sync_play_motion("trte_R_J_big_04t")
     translate(target_id=1)
@@ -642,9 +624,8 @@ def move_from_blue_to_Aarea():#蓝到A柱子
     YanAPI.sync_play_motion("trte_R_J_big_03")
 
 
-def move_from_red_to_Barea():#红到B柱子
+def move_from_red_to_Barea():
     print("red to B")
-    # 你已写好的动作序列
     YanAPI.sync_play_motion("trte_L_J_big_02")
     translate(target_id=2)
     YanAPI.sync_play_motion("te_left_1_805")
@@ -673,7 +654,7 @@ def move_from_red_to_Barea():#红到B柱子
     YanAPI.sync_play_motion("trte_R_J_big_03")
 
 
-def move_from_green_to_Barea():#绿到B柱子
+def move_from_green_to_Barea():
     print("green to B")
     translate(target_id=2)
     YanAPI.sync_play_motion("te_left_1_805")
@@ -703,7 +684,7 @@ def move_from_green_to_Barea():#绿到B柱子
 
 
 
-def move_from_blue_to_Barea():#蓝到B柱子
+def move_from_blue_to_Barea():
     print("blue to B")
     YanAPI.sync_play_motion("trte_R_J_big_04t")
     translate(target_id=2)
@@ -752,12 +733,9 @@ def run2():
 
 
 
-#=======================================================================
-    #改1
     YanAPI.sync_play_motion("A_start_908B")
 
 
-#=======================================================================
 
 
 

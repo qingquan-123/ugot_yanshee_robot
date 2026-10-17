@@ -16,7 +16,6 @@ import cv2
 import numpy as np
 from ugot import ugot
 
-# ===== TensorFlow 条件导入（ugot 环境没有，tf-od 环境才有）=====
 try:
     import tensorflow as tf
     tflite = tf.lite
@@ -25,11 +24,9 @@ except ImportError:
     TF_AVAILABLE = False
     print("[警告] tensorflow 未安装，模型识别功能不可用")
 
-# ===== 模型路径配置 =====
 MODEL_PATH = r'C:\Users\16231\Desktop\ros\pb_tflite\ssd_mobilenet_v2_fpn_320.tflite'
 LABEL_MAP_PATH = r'C:\Users\16231\Desktop\ros\pb_tflite\label_map.pbtxt'
 
-# ===== 全局变量 =====
 _interpreter = None
 _input_details = None
 _output_details = None
@@ -37,7 +34,6 @@ _is_uint8 = False
 _label_map = {}
 _model_loaded = False
 
-# ===== 颜色识别相关 =====
 _MORPH_KERNEL = np.ones((5, 5), np.uint8)
 
 def _get_color_ranges():
@@ -57,26 +53,22 @@ def _get_color_ranges():
 
 COLOR_RANGES = _get_color_ranges()
 
-# ===== AprilTag 相关配置 =====
 TARGET_TAG_ID = None
 FRAME_WIDTH = 640
 FRAME_CENTER = FRAME_WIDTH // 2
-COARSE_THRESHOLD = 60    # 粗对准阈值，快速拉到中速区
-MID_THRESHOLD = 30       # 中速对准阈值，快速靠近
-FINE_THRESHOLD = 16      # 精对准阈值，最终精度
-STABLE_FRAMES = 2        # 稳定帧数，避免误判
-SEARCH_SPEED = 8         # 搜索阶段自转速度
-COARSE_SPEED = 15        # 粗对准阶段旋转速度
-MID_SPEED = 8            # 中速对准阶段旋转速度
-FINE_MIN_SPEED = 5       # 精调最低速度
-FINE_KP = 0.25           # 精调比例系数，越大越快
+COARSE_THRESHOLD = 60
+MID_THRESHOLD = 30
+FINE_THRESHOLD = 16
+STABLE_FRAMES = 2
+SEARCH_SPEED = 8
+COARSE_SPEED = 15
+MID_SPEED = 8
+FINE_MIN_SPEED = 5
+FINE_KP = 0.25
 TAG_SIZE = '10'
 
-# 摄像头标定偏移：机器人物理正对标签时，识别偏移为+16px（而非0）
-# 所有偏差判断均减去此值，修正后正对时偏差=0
 CALIBRATION_OFFSET = 16
 
-# 搜索阶段首帧稳定确认：连续2帧id相同且偏差差≤此值才认为数据稳定
 STABLE_OFFSET_DIFF = 5
 
 STATE_SEARCH = 0
@@ -85,7 +77,6 @@ STATE_MID_ALIGN = 2
 STATE_FINE_ALIGN = 3
 STATE_STABLE_CHECK = 4
 
-# ===== 放置相关可调参数 =====
 LABEL_AREA_THRESHOLD = 14000
 ALIGN_THRESHOLD = 18
 ALIGN_SPEED = 3
@@ -98,9 +89,6 @@ INVALID_EDGE_RATIO = 0.2
 STRICT_MIN_AREA = 2000
 
 
-# ============================================================
-#  摄像头与颜色识别（从 grasp.py 复制）
-# ============================================================
 
 def _read_camera_frame(got):
     """读取摄像头帧"""
@@ -253,7 +241,6 @@ def grasp(got, flag):
     time.sleep(0.5)
     got.mecanum_move_speed_times(0, 8, 8, 1)
     time.sleep(0.5)
-    # got.mecanum_turn_speed_times(2, 11, 1, 2)
     got.mecanum_move_speed_times(0, 5, 2, 1)
     time.sleep(0.5)
     got.mechanical_clamp_close()
@@ -653,9 +640,6 @@ def get_bbox(got, target_color):
     return detected_objects, search_time, current_zone_id, flag_diction, current_zone_id
 
 
-# ============================================================
-#  AprilTag 对准（从 apriltag.py 复制）
-# ============================================================
 
 def parse_tag_data(raw_data):
     """解析 AprilTag 原始返回数据"""
@@ -825,9 +809,6 @@ def align_apriltag(got):
         return False, None
 
 
-# ============================================================
-#  模型相关函数
-# ============================================================
 
 def load_label_map(pbtxt_path):
     """加载 label_map.pbtxt，返回 {id: name} 字典"""
@@ -886,21 +867,17 @@ def detect_label_objects(frame, min_conf=0.9):
     if not _model_loaded or _interpreter is None:
         return []
     try:
-        # 1. 图像预处理：BGR→RGB→resize到320
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         small = cv2.resize(rgb, (320, 320))
 
-        # 2. 根据模型输入类型构造张量
         if _is_uint8:
             tensor = np.expand_dims(small, 0)
         else:
             tensor = np.expand_dims(small.astype(np.float32) / 255.0, 0)
 
-        # 3. 推理
         _interpreter.set_tensor(_input_details['index'], tensor)
         _interpreter.invoke()
 
-        # 4. 输出顺序：boxes=out[0], scores=out[1], classes=out[2]
         boxes = _interpreter.get_tensor(_output_details[0]['index'])[0]
         scores = _interpreter.get_tensor(_output_details[1]['index'])[0]
         try:
@@ -910,7 +887,6 @@ def detect_label_objects(frame, min_conf=0.9):
         if classes is None:
             return []
 
-        # 5. 解析结果
         frame_h, frame_w = frame.shape[:2]
         results = []
         for i in range(len(scores)):
@@ -942,14 +918,10 @@ def detect_label_objects(frame, min_conf=0.9):
         return []
 
 
-# ============================================================
-#  放置相关函数
-# ============================================================
 
 def go_forward_label(got, target_id, speed=5):
     """基于标签面积的前进到位"""
     target_name = _label_map.get(target_id, f"ID{target_id}")
-    # 3号标签面积阈值特殊处理（7500），其他标签用默认值（13000）
     area_threshold = 12000 if target_id == 3 else LABEL_AREA_THRESHOLD
     while True:
         frame = got.read_camera_data()
@@ -1088,7 +1060,7 @@ def search_label_and_place(got, target_id):
                         lost_frame_count = 0
                     else:
                         print("5号区无有效目标标签，向右平移搜索4号区")
-                        got.mecanum_translate_speed_times(90, 10, 26, 1)#25
+                        got.mecanum_translate_speed_times(90, 10, 26, 1)
                         time.sleep(0.5)
                         flag = 4
                 elif flag == 4:
@@ -1116,7 +1088,7 @@ def search_label_and_place(got, target_id):
                         target_obj = max(target_objects, key=lambda x: x['area'])
                         deviation_x = target_obj['center'][0] - center_x
                         print(f"3号区检测到有效目标标签，偏差: {deviation_x}")
-                        got.mecanum_move_speed_times(0, 30, 4, 1)#12
+                        got.mecanum_move_speed_times(0, 30, 4, 1)
                         state = "ADJUSTING_LATERAL"
                         got.mecanum_stop()
                         lost_frame_count = 0
@@ -1286,9 +1258,6 @@ def search_label_and_place(got, target_id):
     return detected_objects, search_time, current_zone_id, flag_diction
 
 
-# ============================================================
-#  返回中转区函数
-# ============================================================
 
 def five_store_1(got, flag):
     """
@@ -1405,9 +1374,6 @@ def align_with_apriltag(got):
     return success, tag_info
 
 
-# ============================================================
-#  主函数：7步/6步完整流程
-# ============================================================
 
 def warehouse_full_7step(got, target_color, target_store_id):
     """
@@ -1425,18 +1391,14 @@ def warehouse_full_7step(got, target_color, target_store_id):
     print(f"智能仓储7步完整流程：先Tag对准 → 抓取{target_color} → 放置到{target_store_id}号 → 返回")
     print("=" * 60)
     try:
-        # 第1步：先识别tag码
         print("\n===== 第1步：AprilTag 对准 =====")
         align_with_apriltag(got)
 
-        # 第2步：再机器复位
         arm_reset(got)
 
-        # 第3步：视觉复位
         print("\n===== 第3步：视觉复位 =====")
         reset_line_vision(got)
 
-        # 第4步：搜索抓取
         print(f"\n===== 第4步：搜索抓取 {target_color} 色块 =====")
         _, _, grab_flag, _, _ = get_bbox(got, target_color)
         if grab_flag is None:
@@ -1444,24 +1406,19 @@ def warehouse_full_7step(got, target_color, target_store_id):
             return False, None, None
         print(f"在 {grab_flag} 号区抓取到 {target_color} 色块")
 
-        # 冲突判断：抓取区与目标放置区相同，改放6号
         if grab_flag == target_store_id:
             print(f"抓取区({grab_flag}号)与目标放置区({target_store_id}号)相同，冲突！改放6号")
             target_store_id = 6
 
-        # 第5步：抓取后返回
         five_store_1(got, grab_flag)
 
-        # 第5.5步：返回中转区后再次AprilTag对准，修正返回来的车身朝向
         align_with_apriltag(got)
 
-        # 第5.6步：对准后向右平移一点点
 
         got.mecanum_translate_speed_times(90, 10, 14, 1)
         time.sleep(0.5)
         got.mecanum_move_speed_times(0, 10, 5, 1)
 
-        # 第6步：搜索放置
         print(f"\n===== 第6步：搜索放置到 {target_store_id} 号存储区 =====")
         _, _, place_flag, _ = search_label_and_place(got, target_store_id)
         if place_flag is None:
@@ -1469,7 +1426,6 @@ def warehouse_full_7step(got, target_color, target_store_id):
             return False, grab_flag, None
         print(f"在 {place_flag} 号区放置完成")
 
-        # 第7步：放置后返回
         five_store_2(got, place_flag)
 
         print("\n" + "=" * 60)
@@ -1500,18 +1456,14 @@ def warehouse_full_6step(got, target_color, target_store_id):
     print(f"智能仓储6步流程：先Tag对准 → 抓取{target_color} → 放置到{target_store_id}号（不返回）")
     print("=" * 60)
     try:
-        # 第1步：先识别tag码
         print("\n===== 第1步：AprilTag 对准 =====")
         align_with_apriltag(got)
 
-        # 第2步：再机器复位
         arm_reset(got)
 
-        # 第3步：视觉复位
         print("\n===== 第3步：视觉复位 =====")
         reset_line_vision(got)
 
-        # 第4步：搜索抓取
         print(f"\n===== 第4步：搜索抓取 {target_color} 色块 =====")
         _, _, grab_flag, _, _ = get_bbox(got, target_color)
         if grab_flag is None:
@@ -1519,21 +1471,16 @@ def warehouse_full_6step(got, target_color, target_store_id):
             return False, None, None
         print(f"在 {grab_flag} 号区抓取到 {target_color} 色块")
 
-        # 冲突判断：抓取区与目标放置区相同，改放6号
         if grab_flag == target_store_id:
             print(f" 抓取区({grab_flag}号)与目标放置区({target_store_id}号)相同，冲突！改放6号")
             target_store_id = 6
 
-        # 第5步：抓取后返回
         five_store_1(got, grab_flag)
 
-        # 第5.5步：返回中转区后再次AprilTag对准，修正返回来的车身朝向
         align_with_apriltag(got)
 
-        # 第5.6步：对准后向右平移一点点
         got.mecanum_translate_speed_times(90, 10, 15, 1)
 
-        # 第6步：搜索放置
         print(f"\n===== 第6步：搜索放置到 {target_store_id} 号存储区 =====")
         _, _, place_flag, _ = search_label_and_place(got, target_store_id)
         if place_flag is None:
@@ -1554,11 +1501,6 @@ def warehouse_full_6step(got, target_color, target_store_id):
         got.mecanum_stop()
 
 
-# ============================================================
-#  命令行入口（tf-od 环境调用）
-#  用法：python zncc.py <target_color> <target_store_id> <need_return>
-#  示例：python zncc.py 绿色 5 1
-# ============================================================
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:

@@ -26,35 +26,27 @@ import time
 import math
 from ugot import ugot
 
-# ==================== 机器人配置 ====================
 ROBOT_IP = '10.233.104.242'
 
-# ==================== AprilTag 配置参数（取自 zncc.py） ====================
-# 目标 Tag ID，None 表示对准视野中任意一个识别到的 Tag
 TARGET_TAG_ID = None
 
 FRAME_WIDTH = 640
 FRAME_CENTER = FRAME_WIDTH // 2
 
-# 五阶段对准阈值（像素）
-COARSE_THRESHOLD = 50    # 粗对准阈值：偏差≤此值进入中速对准
-MID_THRESHOLD = 25       # 中速对准阈值：偏差≤此值进入精对准
-FINE_THRESHOLD = 10      # 精对准入口阈值：中速对准/搜索捷径偏差≤此值进入精对准
-FINE_DEAD_ZONE = 1       # 精对准死区：偏差≤此值才算真正对准，进稳定确认（拆出来避免小偏差时直接跳过微调）
-STABLE_FRAMES = 3        # 稳定帧数：连续多少帧保持在死区内才算对准成功
+COARSE_THRESHOLD = 50
+MID_THRESHOLD = 25
+FINE_THRESHOLD = 10
+FINE_DEAD_ZONE = 1
+STABLE_FRAMES = 3
 
-# 各阶段旋转速度
-SEARCH_SPEED = 6         # 搜索阶段自转速度
-COARSE_SPEED = 12        # 粗对准阶段旋转速度
-MID_SPEED = 8            # 中速对准阶段旋转速度
-FINE_MIN_SPEED = 2       # 精调最低速度（降低避免小偏差时过冲，原5太大）
-FINE_KP = 0.35           # 精调比例系数：偏差×此系数=速度
+SEARCH_SPEED = 6
+COARSE_SPEED = 12
+MID_SPEED = 8
+FINE_MIN_SPEED = 2
+FINE_KP = 0.35
 
-# Tag 物理尺寸（cm），影响距离计算的索引选择
-# '5' → 索引7, '7' → 索引8, '10' → 索引9
 TAG_SIZE = '10'
 
-# ==================== 状态机定义 ====================
 STATE_SEARCH = 0
 STATE_COARSE_ALIGN = 1
 STATE_MID_ALIGN = 2
@@ -62,9 +54,6 @@ STATE_FINE_ALIGN = 3
 STATE_STABLE_CHECK = 4
 
 
-# ============================================================
-#  核心函数
-# ============================================================
 
 def parse_tag_data(raw_data):
     """
@@ -89,7 +78,6 @@ def parse_tag_data(raw_data):
     if tag_id == -1:
         return None
 
-    # 根据 Tag 尺寸选择对应的距离字段索引
     dist_idx = {'5': 7, '7': 8, '10': 9}[TAG_SIZE]
 
     return {
@@ -97,8 +85,8 @@ def parse_tag_data(raw_data):
         "center_x": raw_data[2],
         "center_y": raw_data[3],
         "area": raw_data[6],
-        "distance": raw_data[dist_idx] * 100,   # 米转厘米
-        "yaw_deg": math.degrees(raw_data[12])     # 弧度转角度
+        "distance": raw_data[dist_idx] * 100,
+        "yaw_deg": math.degrees(raw_data[12])
     }
 
 
@@ -126,7 +114,6 @@ def align_apriltag(got):
             raw_data = got.get_qrcode_apriltag_total_info()
             tag = parse_tag_data(raw_data)
 
-            # ===================== 阶段1：搜索标签 =====================
             if current_state == STATE_SEARCH:
                 if tag is None:
                     print("[搜索阶段] 未识别到标签，自转搜索中...")
@@ -134,18 +121,16 @@ def align_apriltag(got):
                     time.sleep(0.1)
                     continue
 
-                # 如果指定了目标 ID，跳过非目标标签
                 if TARGET_TAG_ID is not None and tag["id"] != TARGET_TAG_ID:
                     print(f"[搜索阶段] 识别到ID={tag['id']}，非目标ID={TARGET_TAG_ID}，继续搜索")
                     got.mecanum_move_xyz(0, 0, SEARCH_SPEED)
                     time.sleep(0.1)
                     continue
 
-                # 识别到目标标签，先判断偏差：如果已经在精对准范围内，跳过粗/中对准，直接进精对准慢修
                 offset = tag["center_x"] - FRAME_CENTER
                 if abs(offset) <= FINE_THRESHOLD:
                     print(f"[搜索阶段] 识别到目标标签 ID={tag['id']}，偏差 {offset:+.0f}px 已在精对准范围(±{FINE_THRESHOLD}px)内，跳过粗/中对准，直接进入精对准慢修")
-                    got.mecanum_move_xyz(0, 0, 0)  # 先停转，消除搜索阶段自转惯性
+                    got.mecanum_move_xyz(0, 0, 0)
                     current_state = STATE_FINE_ALIGN
                     stable_count = 0
                 else:
@@ -153,7 +138,6 @@ def align_apriltag(got):
                     current_state = STATE_COARSE_ALIGN
                     stable_count = 0
 
-            # ===================== 阶段2：粗对准 =====================
             elif current_state == STATE_COARSE_ALIGN:
                 if tag is None:
                     print("[粗对准] 标签丢失，返回搜索阶段")
@@ -173,7 +157,6 @@ def align_apriltag(got):
                 last_direction = direction
                 time.sleep(0.05)
 
-            # ===================== 阶段3：中速对准 =====================
             elif current_state == STATE_MID_ALIGN:
                 if tag is None:
                     print("[中速对准] 标签丢失，返回粗对准")
@@ -193,7 +176,6 @@ def align_apriltag(got):
                 last_direction = direction
                 time.sleep(0.05)
 
-            # ===================== 阶段4：精对准（比例调速，死区判断） =====================
             elif current_state == STATE_FINE_ALIGN:
                 if tag is None:
                     print("[精对准] 标签丢失，返回中速对准")
@@ -203,7 +185,6 @@ def align_apriltag(got):
                 offset = tag["center_x"] - FRAME_CENTER
                 print(f"[精对准] ID:{tag['id']} | 偏移:{offset:+.0f}px | 死区:±{FINE_DEAD_ZONE}px")
 
-                # 只有偏差进入死区才算真正对准，进稳定确认
                 if abs(offset) <= FINE_DEAD_ZONE:
                     print("[精对准] 偏移进入死区，进入稳定确认阶段")
                     current_state = STATE_STABLE_CHECK
@@ -211,12 +192,10 @@ def align_apriltag(got):
                     got.mecanum_move_xyz(0, 0, 0)
                     continue
 
-                # 比例控制：偏差越大速度越快，偏差越小速度越慢
                 direction = 1 if offset > 0 else -1
                 speed = FINE_KP * abs(offset)
                 speed = max(FINE_MIN_SPEED, min(speed, MID_SPEED))
                 speed = int(speed)
-                # 小偏差（精对准入口范围内）强制用最慢速度1，避免过冲
                 if abs(offset) <= FINE_THRESHOLD:
                     speed = 1
 
@@ -224,7 +203,6 @@ def align_apriltag(got):
                 last_direction = direction
                 time.sleep(0.05)
 
-            # ===================== 阶段5：稳定确认 =====================
             elif current_state == STATE_STABLE_CHECK:
                 if tag is None:
                     print("[稳定确认] 标签丢失，返回精对准")
@@ -274,11 +252,10 @@ def align_with_apriltag(got):
     print("\n===== AprilTag 对准 =====")
     print("加载 apriltag_qrcode 模型...")
     got.load_models(['apriltag_qrcode'])
-    time.sleep(1)  # 等待模型加载稳定
+    time.sleep(1)
 
     success, tag_info = align_apriltag(got)
 
-    # 释放模型
     try:
         got.release_models(['apriltag_qrcode'])
     except Exception:
@@ -292,9 +269,6 @@ def align_with_apriltag(got):
     return success, tag_info
 
 
-# ============================================================
-#  命令行入口
-# ============================================================
 
 def parse_args():
     """
@@ -333,7 +307,6 @@ def main():
     """
     robot_ip, target_tag_id = parse_args()
 
-    # 将目标 ID 写入全局变量供 align_apriltag 使用
     global TARGET_TAG_ID
     TARGET_TAG_ID = target_tag_id
 
@@ -347,23 +320,19 @@ def main():
 
     got = None
     try:
-        # 1. 连接机器人
         print("\n[1/4] 连接机器人...")
         got = ugot.UGOT()
         got.initialize(robot_ip)
         print("      连接成功")
 
-        # 2. 打开摄像头
         print("\n[2/4] 打开摄像头...")
         got.open_camera()
         time.sleep(0.5)
         print("      摄像头已开启")
 
-        # 3. 加载模型并对准
         print("\n[3/4] 开始 AprilTag 对准...")
         success, tag_info = align_with_apriltag(got)
 
-        # 4. 结果
         print("\n[4/4] 测试结束")
         if success:
             print(f"      结果: 对准成功 (ID={tag_info['id']}, 距离={tag_info['distance']:.1f}cm)")

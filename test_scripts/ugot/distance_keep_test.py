@@ -6,10 +6,9 @@ got = ugot.UGOT()
 got.initialize('10.233.104.242')
 got.open_camera()
 
-# ============距离维持控制参数============
-TARGET_AREA = 45000      # 目标像素中间值，区间40000‑50000
-AREA_LOW = 38000         # 下限
-AREA_HIGH = 50000        # 上限
+TARGET_AREA = 45000
+AREA_LOW = 38000
+AREA_HIGH = 50000
 Kp = 0.0008
 MAX_SPEED = 8
 MIN_SPEED = 3
@@ -81,12 +80,10 @@ def calc_move_speed(current_area):
     error = TARGET_AREA - current_area
     speed = Kp * error
 
-    # 死区，40000‑50000直接停止
     if AREA_LOW <= current_area <= AREA_HIGH:
         return (False, 0, 0)
 
     if speed > 0:
-        # 需要前进
         spd_val = int(speed)
         if spd_val > MAX_SPEED:
             spd_val = MAX_SPEED
@@ -94,7 +91,6 @@ def calc_move_speed(current_area):
             spd_val = MIN_SPEED
         return (True, 0, spd_val)
     else:
-        # 需要后退
         spd_val = int(-speed)
         if spd_val > MAX_SPEED:
             spd_val = MAX_SPEED
@@ -119,8 +115,6 @@ try:
                 print(f"红色像素:{red_area:6d} | 区间[{AREA_LOW},{AREA_HIGH}] | dir={direction} spd={spd}")
 
                 if enable:
-                    # mecanum_move_speed_times(direction, speed, time, unit)
-                    # unit=0:毫秒，给9999ms长时间运行
                     got.mecanum_move_speed_times(direction, spd, 1, 1)
                 else:
                     got.mecanum_move_speed_times(0, 0, 1, 1)

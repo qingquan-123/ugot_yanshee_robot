@@ -4,7 +4,6 @@ import YanAPI
 
 YanAPI.yan_api_init("127.0.0.1")
 
-# ====================== 填入实际转动作 ======================
 def turn_left():
     """标签角度偏左，机器人原地小角度左转"""
     YanAPI.sync_play_motion("turn_L_S2")
@@ -12,7 +11,6 @@ def turn_left():
 def turn_right():
     """标签角度偏右，机器人原地小角度右转"""
     YanAPI.sync_play_motion("turn_r_S1")
-# ============================================================
 
 def tts(content):
     try:
@@ -40,7 +38,6 @@ def main():
     tts("开始对准标签")
     last_spoken_id = -1
 
-    # 角度对准阈值
     yaw_threshold = 5
 
     is_yaw_aligned = False
@@ -63,19 +60,17 @@ def main():
 
                 if yaw is None:
                     print("tag识别到，但没有角度数据，跳过本次")
-                    time.sleep(0.5)  # 调慢一点方便看打印
+                    time.sleep(0.5)
                     continue
 
                 print("TagID:{}  偏航角:{:.2f}".format(tag_id, yaw))
 
-                # --------播报逻辑--------
                 if tag_id != last_spoken_id:
                     speak_text = "识别到阿普瑞泰格标签，编号" + str(tag_id)
                     print(speak_text)
                     tts(speak_text)
                     last_spoken_id = tag_id
 
-                # --------角度对准逻辑--------
                 if yaw > yaw_threshold:
                     print("角度偏右，执行右转")
                     turn_right()

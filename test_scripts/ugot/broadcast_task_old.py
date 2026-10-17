@@ -75,7 +75,6 @@ def broadcast(task_list):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-        # 循环广播 20 次
         for i in range(20):
             udp_socket.sendto(json_str, (BROADCAST_ADDR, BROADCAST_PORT))
             print(f"任务数据已广播 ({i+1}/20)：{task_data}")

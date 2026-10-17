@@ -16,17 +16,6 @@ _line_model_loaded = False
 
 
 def _get_color_ranges():
-    # lower_red1 = np.array([0, 172, 44])
-    # upper_red1 = np.array([21, 255, 255])
-    #
-    # lower_red2 = np.array([174, 172, 44])
-    # upper_red2 = np.array([179, 255, 255])
-    #
-    # lower_green = np.array([50, 136, 84])
-    # upper_green = np.array([66, 255, 255])
-    #
-    # lower_blue = np.array([100, 117, 107])
-    # upper_blue = np.array([113, 255, 255])
 
     lower_red1 = np.array([0, 167, 132])
     upper_red1 = np.array([10, 255, 255])
@@ -121,14 +110,14 @@ def go_forward(got, target_color, speed=5):
         x, y, w, h = target_obj['rect']
         bottom_y = y + h
         area = target_obj['area']
-        stop_y_threshold = height * 0.9  # 0.85
-        stop_area_threshold = height * width * 0.09  # 0.08
+        stop_y_threshold = height * 0.9
+        stop_area_threshold = height * width * 0.09
         color_ratio = calculate_color_ratio_in_bottom_region(data, target_color, 1 / 4)
 
         print(
             f"目标底部Y: {bottom_y:.0f}/{height}, 面积占比: {area / (height * width):.2%}, 底部占比: {color_ratio:.2%}")
 
-        if (bottom_y >= stop_y_threshold and area >= stop_area_threshold) or color_ratio >= 0.39:  # 35
+        if (bottom_y >= stop_y_threshold and area >= stop_area_threshold) or color_ratio >= 0.39:
             print("到达抓取位置，停止前进")
             got.mecanum_stop()
             break
@@ -146,25 +135,14 @@ def go_forward_zone3(got, target_color, speed=5):
     3号区专属：视觉引导向前靠近目标
     参数已完全对齐原版 go_forward，所有可调项集中在此处
     """
-    # ========== 核心停止阈值参数 ==========
-    # 【影响Y轴位置】目标底部边缘占画面高度的比例，越大代表目标越靠下（离得越近）才停止
     STOP_Y_RATIO = 0.8
-    # 【影响面积占比】目标总面积占全屏的比例，越大代表目标面积越大（离得越近）才停止
     STOP_AREA_RATIO = 0.085
-    # 【影响底部占比】画面底部区域内，目标颜色像素的占比，越大代表目标越贴近镜头底部才停止
     BOTTOM_COLOR_RATIO = 0.2
 
-    # ========== 慢速触发阈值 ==========
-    # 【影响Y轴位置】目标底部到这个比例时，开始降速慢行
     SLOW_TRIGGER_Y_RATIO = 0.7
-    # 【影响面积占比】目标面积到停止阈值的这个倍数时，开始降速慢行
     SLOW_TRIGGER_AREA_RATIO = 0.6
-    # 降速后的前进速度
     SLOW_SPEED = 3
 
-    # ========== 底部区域范围 ==========
-    # 【影响底部占比】取画面底部多大比例作为“底部区域”，默认1/4
-    # 这个值越大，底部区域越高，相同目标下占比数值会越小
     BOTTOM_REGION_RATIO = 1 / 4
 
     while True:
@@ -189,10 +167,8 @@ def go_forward_zone3(got, target_color, speed=5):
         bottom_y = y + h
         area = target_obj['area']
 
-        # 计算停止阈值
         stop_y_threshold = height * STOP_Y_RATIO
         stop_area_threshold = height * width * STOP_AREA_RATIO
-        # 计算底部颜色占比
         color_ratio = calculate_color_ratio_in_bottom_region(data, target_color, BOTTOM_REGION_RATIO)
 
         print(
@@ -200,13 +176,11 @@ def go_forward_zone3(got, target_color, speed=5):
             f"面积占比: {area / (height * width):.2%} | "
             f"底部占比: {color_ratio:.2%}")
 
-        # 停止判断：满足「Y+面积双条件」或「底部占比单条件」任一即停
         if (bottom_y >= stop_y_threshold and area >= stop_area_threshold) or color_ratio >= BOTTOM_COLOR_RATIO:
             print("【3区】到达抓取位置，停止前进")
             got.mecanum_stop()
             break
         else:
-            # 接近目标后降速
             if bottom_y >= height * SLOW_TRIGGER_Y_RATIO or area >= stop_area_threshold * SLOW_TRIGGER_AREA_RATIO:
                 got.mecanum_move_speed_times(0, SLOW_SPEED, 1, 0)
             else:
@@ -235,14 +209,11 @@ def grasp(got, flag):
     time.sleep(0.5)
 
     got.mecanum_turn_speed_times(2, 11, 3, 2)
-    # got.mecanum_move_speed_times(0, 5, 2, 1)
     got.mecanum_move_speed_times(0, 5, 5, 1)
     time.sleep(0.1)
 
     got.mechanical_clamp_close()
     time.sleep(1)
-    # got.mechanical_clamp_close()
-    # time.sleep(0.6)
     got.mecanum_turn_speed_times(3, 11, 5, 2)
 
     got.mecanum_move_speed_times(1, 10, 2, 1)
@@ -258,52 +229,11 @@ def grasp(got, flag):
     time.sleep(0.5)
     got.mechanical_single_joint_control(2, 90, 200)
     time.sleep(0.5)
-    # got.mechanical_single_joint_control(3, -90, 200)
-    # time.sleep(0.5)
     print("抓取完成")
 
-# =====================================================================================================================
 
 
 
-    # got.mechanical_single_joint_control(3, -70, 100)
-    # got.mechanical_single_joint_control(2, -25, 100)
-    # got.mechanical_clamp_release()
-    # time.sleep(0.1)
-    #
-    # got.mecanum_move_speed_times(1, 20, 11, 1)
-    # got.mecanum_move_speed_times(1, 20, 1, 1)
-    #
-    # got.mechanical_single_joint_control(3, 15, 100)
-    # got.mechanical_single_joint_control(2, -80, 100)
-    # time.sleep(0.6)
-    #
-    # got.mecanum_move_speed_times(0, 10, 10, 1)
-    # time.sleep(0.1)
-    # got.mecanum_move_speed_times(0, 5, 7, 1)
-    # time.sleep(0.1)
-    #
-    # got.mecanum_turn_speed_times(2, 11, 3, 2)
-    # got.mecanum_move_speed_times(0, 5, 2, 1)
-    # time.sleep(0.1)
-    #
-    # got.mechanical_clamp_close()
-    # time.sleep(0.1)
-    # got.mechanical_clamp_close()
-    # time.sleep(0.1)
-    # got.mecanum_turn_speed_times(3, 11, 5, 2)
-    #
-    # got.mecanum_move_speed_times(1, 10, 2, 1)
-    # time.sleep(0.1)
-    # got.mechanical_single_joint_control(3, 45, 100)
-    # time.sleep(0.1)
-    # got.mecanum_move_speed_times(1, 10, 10, 1)
-    # time.sleep(0.1)
-    #
-    # got.mechanical_single_joint_control(2, 0, 100)
-    # got.mechanical_single_joint_control(2, 40, 100)
-    # got.mechanical_single_joint_control(2, 100, 100)
-    # got.mechanical_single_joint_control(3, -90, 100)
 
 
 def grasp3(got, flag):
@@ -335,8 +265,6 @@ def grasp3(got, flag):
 
     got.mechanical_clamp_close()
     time.sleep(1)
-    # got.mechanical_clamp_close()
-    # time.sleep(0.6)
     got.mecanum_turn_speed_times(3, 11, 5, 2)
 
     got.mecanum_move_speed_times(1, 10, 2, 1)
@@ -352,15 +280,12 @@ def grasp3(got, flag):
     time.sleep(0.5)
     got.mechanical_single_joint_control(2, 90, 200)
     time.sleep(0.5)
-    # got.mechanical_single_joint_control(3, -90, 200)
-    # time.sleep(0.5)
     print("抓取完成")
 
 def reset_line_vision(got):
     print("=" * 50)
     print("【强制复位巡线视觉模式】开始")
 
-    # 先停车，确保机器人完全停稳后再切换模型和识别
     got.mecanum_stop()
     time.sleep(0.3)
 
@@ -408,32 +333,6 @@ def reset_line_vision(got):
     print("=" * 50)
     return success
 
-# def reset_line_vision(got):
-#     """复位巡线视觉状态，切换模型并预热"""
-#     global _line_model_loaded
-#     print("============================192===========================")
-#     try:
-#         got.close_camera()
-#         time.sleep(0.12)
-#     except Exception:
-#         pass
-#     got.open_camera()
-#     time.sleep(0.15)
-#
-#     if not _line_model_loaded:
-#         print("首次加载巡线模型...")
-#         got.load_models(["line_recognition"])
-#         _line_model_loaded = True
-#         time.sleep(0.2)
-#
-#     got.set_track_recognition_line(0)
-#     time.sleep(0.08)
-#     print("视觉模型预热中...")
-#     for _ in range(2):
-#         got.get_single_track_total_info()
-#         time.sleep(0.06)
-#     print("巡线视觉状态复位完成")
-#     return True
 
 
 def _get_rotate_speed(u, pid_ctrl, max_speed=max_rotate_speed):
@@ -459,7 +358,7 @@ def pid_find_line_store(u, target_store, pid_ctrl):
     START_BUFFER_FRAMES = 15
 
     finding_line = False
-    find_direction = 1  # 1顺时针 -1逆时针
+    find_direction = 1
     find_step_count = 0
 
     if target_store == "A":
@@ -599,7 +498,7 @@ def pid_find_line_store(u, target_store, pid_ctrl):
 
             if lost_line_count < LOST_LINE_THRESHOLD:
 
-                u.mecanum_move_xyz(0, 2 , -int(last_rotate_speed * 0.2))#6
+                u.mecanum_move_xyz(0, 2 , -int(last_rotate_speed * 0.2))
                 print(f"临时丢线，低速维持找线，连续丢帧: {lost_line_count}")
             else:
 
@@ -625,13 +524,6 @@ def complete_task(u, target_store, num, task):
     pid_store = u.create_pid_controller()
     pid_store.set_pid(0.12, 0.0015, 0.15)
     pid_find_line_store(u, target_store, pid_store)
-    # u.play_audio_tts("任务一完成", 0, False)
-    # time.sleep(0.2)
-    # u.mechanical_clamp_release()
-    # # u.mechanical_single_joint_control(3, 60, 1000)
-    # u.mechanical_single_joint_control(2, 80, 1000)
-    # u.mechanical_single_joint_control(3, -100, 1000)
-    # time.sleep(0.2)
     u.mecanum_move_speed_times(1, 7, 13, 1)
     time.sleep(0.2)
     print("任务一完成！")
@@ -710,12 +602,12 @@ def get_bbox(got, target_color):
     max_camera_checks = 5
     LOST_FRAME_THRESHOLD = 30
 
-    ALIGN_THRESHOLD = 18  # 对齐阈值，单位像素  30
-    ALIGN_SPEED = 3  # 横移速度
-    ALIGN_DURATION = 1  # 横移时长，固定平移距离
+    ALIGN_THRESHOLD = 18
+    ALIGN_SPEED = 3
+    ALIGN_DURATION = 1
 
-    INVALID_EDGE_RATIO = 0.2  # 左右各1/5为无效区域，中间3/5有效
-    STRICT_MIN_AREA = 2000  # 最小面积阈值，太小的目标不算
+    INVALID_EDGE_RATIO = 0.2
+    STRICT_MIN_AREA = 2000
 
     state = "INITIALIZING"
     search_time = 0
@@ -756,15 +648,6 @@ def get_bbox(got, target_color):
                     if valid_left <= obj['center'][0] <= valid_right
                        and obj['area'] >= strict_area
                 ]
-            # if flag != 6:
-            #     valid_left = width * INVALID_EDGE_RATIO
-            #     valid_right = width * (1 - INVALID_EDGE_RATIO)
-            #     strict_area = 500 if flag == 3 else STRICT_MIN_AREA
-            #     target_objects = [
-            #         obj for obj in target_objects
-            #         if valid_left <= obj['center'][0] <= valid_right
-            #            and obj['area'] >= STRICT_MIN_AREA
-            #     ]
 
             if state == "INITIALIZING":
                 init_frames += 1
@@ -819,8 +702,6 @@ def get_bbox(got, target_color):
                         lost_frame_count = 0
                     else:
                         print("4号区无有效目标，转向搜索3号区")
-                        # got.mecanum_translate_speed_times(90, 20, 4, 1)
-                        # got.mecanum_move_speed_times(0, 30, 2, 1)
                         time.sleep(0.5)
                         got.mecanum_turn_speed_times(3, 90, 34, 2)
                         time.sleep(1)
@@ -848,8 +729,7 @@ def get_bbox(got, target_color):
                             print("3区域没有有效目标色块，切换至2区搜索")
                             search_time = 0
                             flag = 2
-                            got.mecanum_turn_speed_times(3, 90, 51, 2)#48
-                            # got.mecanum_translate_speed_times(90, 20, 2, 1)
+                            got.mecanum_turn_speed_times(3, 90, 51, 2)
                             time.sleep(0.05)
                             print("旋转后检测目标")
 
@@ -906,8 +786,8 @@ def get_bbox(got, target_color):
                     else:
                         print("1号区当前位置无目标，启动阶梯式平移搜索")
                         found_target = False
-                        search_step_speed = 5    # 每次平移速度
-                        search_step_duration = 2 # 每次平移时长，控制步长
+                        search_step_speed = 5
+                        search_step_duration = 2
 
 
                         for step in range(3):
@@ -1010,7 +890,6 @@ def get_bbox(got, target_color):
                     time.sleep(0.5)
 
                     if current_zone_id == 3:
-                        # got.mecanum_move_speed_times(0, 30, 12, 1)
                         go_forward_zone3(got, target_color, speed=5)
                     else:
                         go_forward(got, target_color, speed=5)
@@ -1020,7 +899,6 @@ def get_bbox(got, target_color):
                         grasp3(got, current_zone_id)
                     else:
                         grasp(got, current_zone_id)
-                    # grasp(got, current_zone_id)
 
                     print("抓取完成")
                     state = "COMPLETED"
@@ -1043,8 +921,5 @@ def get_bbox(got, target_color):
         except Exception:
             pass
         print("颜色检测任务结束，摄像头已释放")
-    # finally:
-    #     got.mecanum_stop()
-    #     print("颜色检测任务结束")
 
     return detected_objects, search_time, current_zone_id, flag_diction, current_zone_id

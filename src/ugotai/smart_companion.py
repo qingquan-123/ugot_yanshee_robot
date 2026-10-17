@@ -31,7 +31,6 @@ try:
 except ImportError:
     pass
 
-# ===== 千帆大模型配置 =====
 from api_config import *
 import qianfan
 os.environ["QIANFAN_ACCESS_KEY"] = QIANFAN_ACCESS_KEY
@@ -39,7 +38,6 @@ os.environ["QIANFAN_SECRET_KEY"] = QIANFAN_SECRET_KEY
 MODEL = "DeepSeek-V4-Flash"
 chat_comp = qianfan.ChatCompletion(model=MODEL)
 
-# ===== requests（天气查询）=====
 try:
     import requests
     REQUESTS_AVAILABLE = True
@@ -49,9 +47,6 @@ except ImportError:
 
 from ugot import ugot
 
-# ============================================================
-#  配置常量
-# ============================================================
 ROBOT_IP = "10.233.104.242"
 DEFAULT_CITY = "杭州"           # 默认天气查询城市
 LLM_TIMEOUT = 8                 # 大模型超时秒数
@@ -80,9 +75,6 @@ FALLBACK_ANSWERS = [
     "哇这个问题好有深度，我觉得跟着感觉走就对了！",
 ]
 
-# ============================================================
-#  映射表
-# ============================================================
 EMOTION_MAP = {
     "愤怒": "Anger", "生气": "Anger", "怒": "Anger",
     "微笑": "Smile", "高兴": "Smile", "开心": "Smile", "快乐": "Smile", "笑": "Smile",
@@ -127,9 +119,6 @@ KNOWN_CITIES = [
 ]
 
 
-# ============================================================
-#  工具函数
-# ============================================================
 def show_text_on_screen(got, text):
     """屏幕显示文字（自动截断，避免溢出）"""
     try:
@@ -236,9 +225,7 @@ def generate_answer(user_text, chat_history):
             request_timeout=LLM_TIMEOUT,
         )
         answer = resp["result"].strip()
-        # 去掉可能的引号
         answer = answer.strip('"').strip("'")
-        # 截断过长回答
         if len(answer) > 50:
             answer = answer[:50] + "。"
         print(f"  大模型回答: {answer}")
@@ -270,9 +257,6 @@ def listen_user(got, timeout=ASR_TIMEOUT):
     return None
 
 
-# ============================================================
-#  主流程
-# ============================================================
 def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light_duration, repeat):
     """
     智能陪伴完整流程
@@ -306,14 +290,12 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
         for i in range(chat_times):
             print(f"\n===== 2.{i+1} 第 {i+1}/{chat_times} 次对话 =====")
 
-            # 提示用户说话
             try:
                 got.play_audio_tts(f"第{i+1}次对话，你说", 0, True)
             except:
                 pass
             time.sleep(0.3)
 
-            # 识别用户说话
             user_text = listen_user(got)
             if not user_text:
                 print("  未识别到用户说话，跳过本轮")
@@ -326,19 +308,15 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
             print(f"  用户说：{user_text}")
             show_text_on_screen(got, user_text)
 
-            # 生成回答
             answer = generate_answer(user_text, chat_history)
 
-            # 语音播报回答
             try:
                 got.play_audio_tts(answer, 0, True)
             except Exception as e:
                 print(f"  语音播报失败: {e}")
 
-            # 屏幕显示回答
             show_text_on_screen(got, answer)
 
-            # 重复回答
             if repeat:
                 time.sleep(0.5)
                 try:
@@ -427,11 +405,6 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
             pass
 
 
-# ============================================================
-#  命令行入口
-#  用法：python smart_companion.py <chat_times> <emotion> <sound> <light_color> <light_duration> <repeat>
-#  示例：python smart_companion.py 2 愤怒 "['大象','老虎']" 红色 3 False
-# ============================================================
 if __name__ == "__main__":
     if len(sys.argv) < 7:
         print("用法: python smart_companion.py <chat_times> <emotion> <sound> <light_color> <light_duration> <repeat>")

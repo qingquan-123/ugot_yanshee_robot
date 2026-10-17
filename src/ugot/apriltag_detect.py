@@ -5,34 +5,29 @@ import math
 
 ROBOT_IP = '10.233.104.242'
 
-# ==================== 配置参数（已优化） ====================
 TARGET_TAG_ID = None
 
 FRAME_WIDTH = 640
 FRAME_CENTER = FRAME_WIDTH // 2
 
-# 阈值优化：粗调放宽，增加中速区，精调保持精度
-COARSE_THRESHOLD = 60    # 粗对准阈值，快速拉到中速区
-MID_THRESHOLD = 30       # 中速对准阈值，快速靠近
+COARSE_THRESHOLD = 60
+MID_THRESHOLD = 30
 FINE_THRESHOLD = 17
-CALIBRATION_OFFSET = -16      # 精对准阈值，最终精度
-STABLE_FRAMES = 2        # 连续2帧稳定即完成对准
-MAX_STABLE_ATTEMPTS = 3  # 最多尝试3次稳定确认，第3次直接退出
+CALIBRATION_OFFSET = -16
+STABLE_FRAMES = 2
+MAX_STABLE_ATTEMPTS = 3
 
-# 速度优化：分三档速度
 SEARCH_SPEED = 8
 COARSE_SPEED = 15
-MID_SPEED = 8            # 新增中速，兼顾速度和稳定
-FINE_MIN_SPEED = 3       # 精调最低速度
-FINE_KP = 0.25           # 精调比例系数，越大越快
+MID_SPEED = 8
+FINE_MIN_SPEED = 3
+FINE_KP = 0.25
 
 TAG_SIZE = '10'
-# ==========================================================
 
-# 状态机：新增中速对准阶段
 STATE_SEARCH = 0
 STATE_COARSE_ALIGN = 1
-STATE_MID_ALIGN = 2      # 新增：中速对准
+STATE_MID_ALIGN = 2
 STATE_FINE_ALIGN = 3
 STATE_STABLE_CHECK = 4
 
@@ -75,7 +70,6 @@ def align_apriltag(got):
             raw_data = got.get_qrcode_apriltag_total_info()
             tag = parse_tag_data(raw_data)
 
-            # ===================== 阶段1：搜索标签 =====================
             if current_state == STATE_SEARCH:
                 if tag is None:
                     print("[搜索阶段] 未识别到标签，自转搜索中...")
@@ -93,7 +87,6 @@ def align_apriltag(got):
                 current_state = STATE_COARSE_ALIGN
                 stable_count = 0
 
-            # ===================== 阶段2：粗对准 =====================
             elif current_state == STATE_COARSE_ALIGN:
                 if tag is None:
                     print("[粗对准] 标签丢失，返回搜索阶段")
@@ -113,7 +106,6 @@ def align_apriltag(got):
                 last_direction = direction
                 time.sleep(0.05)
 
-            # ===================== 阶段3：中速对准（新增，提速关键） =====================
             elif current_state == STATE_MID_ALIGN:
                 if tag is None:
                     print("[中速对准] 标签丢失，返回粗对准")
@@ -133,7 +125,6 @@ def align_apriltag(got):
                 last_direction = direction
                 time.sleep(0.05)
 
-            # ===================== 阶段4：精对准（比例调速 + 整数修复） =====================
             elif current_state == STATE_FINE_ALIGN:
                 if tag is None:
                     print("[精对准] 标签丢失，返回中速对准")
@@ -156,7 +147,6 @@ def align_apriltag(got):
                         return True, tag
                     continue
 
-                # 比例控制：偏差越大速度越快，偏差越小速度越慢
                 direction = 1 if offset > 0 else -1
                 speed = FINE_KP * abs(offset)
                 speed = max(FINE_MIN_SPEED, min(speed, MID_SPEED))
@@ -166,7 +156,6 @@ def align_apriltag(got):
                 last_direction = direction
                 time.sleep(0.05)
 
-            # ===================== 阶段5：稳定确认 =====================
             elif current_state == STATE_STABLE_CHECK:
                 if tag is None:
                     print("[稳定确认] 标签丢失，返回精对准")
@@ -228,7 +217,6 @@ def wttag():
             print("\n清理资源...")
             try:
                 got.release_models(['apriltag_qrcode'])
-                # got.close_camera()
             except Exception:
                 pass
             got.mecanum_stop()

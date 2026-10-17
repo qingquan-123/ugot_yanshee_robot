@@ -14,13 +14,11 @@ class UGOTCompetition:
         self.ip_address = ip_address
         self.got = ugot.UGOT()
 
-        # ---- 两轮任务状态 ----
-        self.task_list = []  # [(color, store), (color, store)]，按执行顺序
-        self.current_round = 0  # 当前执行到第几轮（1 or 2）1
-        self.target_color = None  # 当前轮目标颜色（兼容原有变量名）
-        self.target_store = None  # 当前轮目标存储区
+        self.task_list = []
+        self.current_round = 0
+        self.target_color = None
+        self.target_store = None
 
-        # ---- UDP广播配置（替换原来机器人内置广播） ----
         self.broadcast_port = 9527
         self.broadcast_addr = '255.255.255.255'
 
@@ -189,7 +187,7 @@ class UGOTCompetition:
 
     def find_line(self):
         if not self.camera_initialized:
-            print("错误：摄像头未就绪，禁止巡线")
+            print("错误：摄像头未就绪")
             return
 
         print("开始巡线...")

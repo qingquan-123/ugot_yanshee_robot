@@ -15,7 +15,6 @@ def task2():
     YanAPI.sync_play_motion("clamp_back_805")
     YanAPI.sync_play_motion("trte_R_J_big_03")
 
-    # red（合格）1分10秒变1分08秒
     YanAPI.sync_play_motion("turn_r_90_806A")
 
 
@@ -26,7 +25,6 @@ def task2():
     YanAPI.sync_play_motion("A_walk_J_02_b")
     YanAPI.sync_play_motion("let_go")
 
-    # blue go B
     YanAPI.sync_play_motion("trte_R_J_big_04t")
     translate(target_id=2)
     YanAPI.sync_play_motion("te_left_1_805")
@@ -46,7 +44,6 @@ def task2():
     YanAPI.sync_play_motion("clamp_back_805")
     YanAPI.sync_play_motion("trte_R_J_big_03")
 
-    # B go red
     YanAPI.sync_play_motion("turn_r_90_806A")
     tat(target_id=1)
     YanAPI.sync_play_motion("A_walk_J_02_b")
