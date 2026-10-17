@@ -1,0 +1,20 @@
+# ============ UGOT & Yanshee 机器人控制项目依赖 ============
+# 安装：pip install -r requirements.txt
+#
+# 注意：
+# 1. UGOT 板载环境（aarch64 / Python 3.8）需额外安装 TensorFlow 2.10.1
+#    ARM wheel（项目内 *.whl 文件，不入库）：
+#      pip install tensorflow_aarch64-2.10.1-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+#    或从板载环境的软件源安装。
+# 2. PC 开发环境（x86_64）可用 tflite-runtime 替代 tensorflow：
+#      pip install tflite-runtime
+# 3. ugot 机器人 SDK 由厂商提供，按官方文档单独安装，不在此清单内。
+# 4. 运行 ugotai 前需在 src/ugotai/api_config.py 配置百度智能云密钥（该文件不入库）。
+
+opencv-python>=4.5
+numpy>=1.19
+qianfan>=0.3
+certifi>=2023.0.0
+requests>=2.28
+Pillow>=9.0
+nest_asyncio>=1.5

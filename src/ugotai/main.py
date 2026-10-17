@@ -13,11 +13,6 @@ def patched_create_default_context(purpose=ssl.Purpose.SERVER_AUTH, *, cafile=No
     ctx.load_verify_locations(cafile=certifi.where())
     return ctx
 
-
-# 必须在导入 qianfan（依赖 aiohttp）之前打补丁：
-# aiohttp 在 import 阶段就会调用 ssl.create_default_context()，
-# 若此时补丁未生效，它会去读 Windows 证书存储，触发
-# ssl.SSLError: [ASN1: NOT_ENOUGH_DATA]
 ssl.create_default_context = patched_create_default_context
 
 from ugot import ugot
@@ -46,14 +41,11 @@ def agent_play():
         else:
             u.play_audio_tts("我没有听清楚，请再说一遍", 0, True)
 
-    # 大模型解析
     agent_plan_list, ai_response = agent_plan_qianfan(speech_result)
 
-    # 保存动作计划
     with open('temp/agent_plan.txt', 'w', encoding='utf-8') as f:
         f.write(str(agent_plan_list))
 
-    # 不复述任务，直接执行动作
     print("\n 开始执行动作...")
     execute_action_list(agent_plan_list)
     clear_screen()
@@ -65,7 +57,6 @@ if __name__ == '__main__':
     try:
         agent_play()
     finally:
-        # 运行完一次任务后清理资源并退出
         print("\n 任务完成，正在清理资源...")
         try:
             u.mecanum_stop()

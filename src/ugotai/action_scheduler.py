@@ -32,7 +32,7 @@ u.load_models([
 time.sleep(2)
 
 
-# tf-od 环境 python 路径（所有视觉脚本都在这个环境下运行）
+# tf-od 环境 python 路径
 TF_PYTHON = r"C:\Users\16231\anaconda3\envs\tf-od\python.exe"
 import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

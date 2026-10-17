@@ -4,7 +4,6 @@ import numpy as np
 import time
 
 
-# 颜色范围（HSV）
 def get_color_ranges():
     lower_red1 = np.array([0, 167, 132])
     upper_red1 = np.array([10, 255, 255])
@@ -25,7 +24,6 @@ color_ranges = get_color_ranges()
 
 
 def detect_color_objects(frame, target_color=None, min_area=500):
-    """检测画面中指定颜色的色块，返回列表"""
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     results = []
     check_colors = [target_color] if target_color else color_ranges.keys()
@@ -124,7 +122,6 @@ def grasp_block(got, flag):
 
 def grab_color_block_full(got, target_color):
     """
-    完整色块抓取流程：搜索→对准→前进→抓取→回退
     返回：(是否成功, flag, flag_diction, search_time)
     """
     state = "FINDING_TARGET"
@@ -187,7 +184,6 @@ def grab_color_block_full(got, target_color):
                         go_forward_to_color(got, target_color)
                         grasp_block(got, flag)
 
-                        # 抓取后回退
                         if flag == 1:
                             got.mecanum_move_speed_times(1, 20, 20, 1)
                         if flag == 2 and search_time >= 1:

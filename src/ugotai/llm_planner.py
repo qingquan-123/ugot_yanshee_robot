@@ -10,7 +10,7 @@ os.environ["QIANFAN_SECRET_KEY"] = QIANFAN_SECRET_KEY
 MODEL = "DeepSeek-V4-Flash"  # 已开通可用的轻量模型
 chat_comp = qianfan.ChatCompletion(model=MODEL)
 
-# ---- 熔断状态：连续失败达到阈值后，本次会话直接走本地兜底 ----
+
 _api_fail_count = 0
 API_FAIL_LIMIT = 2
 
@@ -45,7 +45,7 @@ def fallback_parse(question=""):
     actions = []
     response = "好的，开始执行"
 
-    # 1. 智能侦察：识别/侦察/侦探 + 对象关键词
+    # 智能侦察
     if any(k in q for k in ["识别", "侦察", "侦探"]):
         mapping = [("文字", "文字"), ("手势", "手势"), ("交通", "交通标志"),
                    ("标签", "标签"), ("色块", "色块")]
@@ -55,7 +55,7 @@ def fallback_parse(question=""):
             response = "开始侦察模式，按顺序识别播报"
             return actions, response
 
-    # 2. 智能陪伴：陪伴/聊天/对话 + 表情/音效/呼吸灯
+    # 智能陪伴
     if any(k in q for k in ["陪伴", "聊天", "对话", "表情", "声音", "呼吸灯", "音效", "模仿"]):
         emotion = None
         for e in ["愤怒", "微笑", "高兴", "疑惑", "爱心", "骄傲", "睡眠", "苏醒"]:
@@ -78,7 +78,7 @@ def fallback_parse(question=""):
             response = "开始陪伴模式"
             return actions, response
 
-    # 3. 智能仓储：搬运/抓取/放置 + 颜色
+    # 智能仓储
     if any(k in q for k in ["搬运", "仓储", "抓取", "拿", "放置", "存储", "仓库", "色块"]):
         color = None
         for c in ["红色", "绿色", "蓝色"]:
@@ -86,18 +86,15 @@ def fallback_parse(question=""):
                 color = c
                 break
         if color:
-            # 提取位置号
             pos = 3
             import re
             pos_match = re.search(r'(\d+)\s*号', q)
             if pos_match:
                 pos = int(pos_match.group(1))
-            # 提取后退距离
             backward = 10
             back_match = re.search(r'后退\s*(\d+)', q)
             if back_match:
                 backward = int(back_match.group(1))
-            # 提取旋转角度（左转正，右转负）
             rotate = 0
             left_match = re.search(r'左转\s*(\d+)', q)
             right_match = re.search(r'右转\s*(\d+)', q)
@@ -105,7 +102,6 @@ def fallback_parse(question=""):
                 rotate = int(left_match.group(1))
             elif right_match:
                 rotate = -int(right_match.group(1))
-            # 提取前置旋转（转圈圈）
             pre_rotate = 0
             circle_match = re.search(r'转\s*(\d+)\s*度.*圈|圈.*转\s*(\d+)\s*度', q)
             if circle_match:
@@ -117,13 +113,13 @@ def fallback_parse(question=""):
             response = "开始仓储搬运任务"
             return actions, response
 
-    # 4. 智能解算：几何运动
+    # 智能解算
     if any(k in q for k in ["四边形", "三角形", "多边形", "解算", "几何", "边长", "算数"]):
         actions.append('geometry_task("polygon:4,30,cw;move:20,left;move:20,right;arm:3")')
         response = "开始执行几何运动"
         return actions, response
 
-    # 5. 基础动作
+
     if "前进" in q or "向前" in q:
         actions.append("move_forward(20)")
         response = "好的，向前前进20厘米"
@@ -137,7 +133,6 @@ def fallback_parse(question=""):
         actions.append("turn_right(90)")
         response = "好的，向右转90度"
 
-    # 无任何匹配时：给出中性回应，避免聊天语境下播报"好的，开始执行"
     if not actions:
         response = "我暂时无法理解这个指令，请换个说法试试"
 
@@ -146,7 +141,6 @@ def fallback_parse(question=""):
 
 def agent_plan_qianfan(question=""):
     global _api_fail_count
-    # 熔断：连续失败已达阈值，不再调 API，直接兜底
     if _api_fail_count >= API_FAIL_LIMIT:
         print(f" 千帆API已连续失败{_api_fail_count}次，本次直接使用本地规则兜底")
         return fallback_parse(question)
@@ -270,8 +264,8 @@ def agent_plan_qianfan(question=""):
             top_p=0.8,
             temperature=0.3,
             penalty_score=1.0,
-            retry_count=0,        # 配额类错误重试无意义，直接失败切兜底
-            request_timeout=15    # 15 秒超时，避免长时间干等
+            retry_count=0,
+            request_timeout=15
         )
         result = resp["result"]
         print('【大模型原始输出】\n', result)
@@ -283,7 +277,7 @@ def agent_plan_qianfan(question=""):
             action_plan_json = {"action": [], "response": result}
 
         print('【解析后动作计划】\n', action_plan_json)
-        _api_fail_count = 0  # 调用成功，熔断计数清零
+        _api_fail_count = 0
         return action_plan_json.get('action', []), action_plan_json.get('response', '好的，执行指令')
 
     except Exception as e:

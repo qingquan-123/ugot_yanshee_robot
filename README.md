@@ -60,9 +60,34 @@ gs/
 
 ## 环境依赖
 
-- Python 3.8（UGOT 板载环境）
-- 依赖安装包（如 TensorFlow aarch64 wheel）通过 `*.whl` 单独安装，不入库
-- `certifi`、`aiohttp` 等（ugotai 需要）
+**第三方库**（已收录于 `requirements.txt`）：
+
+| 库 | 用途 | 使用场景 |
+|---|---|---|
+| opencv-python | HSV 颜色识别、图像预处理 | ugot / ugotai / yanshee |
+| numpy | 图像数组、数值计算 | 全部 |
+| qianfan | 百度千帆 LLM（DeepSeek-V4-Flash） | ugotai |
+| certifi | SSL 证书校验（解决板载 SSL 报错） | ugotai |
+| requests | HTTP 请求 | ugotai |
+| Pillow | 图像处理 | ugotai |
+| nest_asyncio | 事件循环兼容 | ugotai |
+| tensorflow / tflite-runtime | 目标检测模型推理（SSD MobileNet） | ugotai / models |
+
+**分平台安装说明**：
+
+| 平台 | Python | 依赖差异 | 安装方式 |
+|---|---|---|---|
+| UGOT 板载 | 3.8（aarch64） | TensorFlow **2.10.1**（ARM wheel 单独安装，不入库） | `pip install -r requirements.txt`，再 `pip install tensorflow_aarch64-2.10.1-....whl` |
+| PC 开发 | 3.8+（x86_64） | 用 `tflite-runtime` 或 TensorFlow CPU 版替代 | `pip install -r requirements.txt` 后按需安装推理库 |
+
+**其他说明**：
+- `ugot` 机器人 SDK 由厂商提供，按官方文档安装（本仓库不包含）
+- 语音识别/合成依赖 UGOT 板载能力或云端 API，无需额外安装
+- 完整环境一键安装：
+
+```bash
+pip install -r requirements.txt
+```
 
 ## 使用说明
 
