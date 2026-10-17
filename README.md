@@ -1,4 +1,4 @@
-# UGOT & Yanshee 机器人控制项目
+# UGOT & Yanshee 机器人控制
 
 面向睿抗（RoboCon）机器人竞赛的机器人智能控制系统，覆盖 **UGOT** 与 **Yanshee** 双平台，打通视觉感知 → 运动控制 → 大模型任务规划完整链路。
 
