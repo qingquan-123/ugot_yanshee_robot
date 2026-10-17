@@ -39,7 +39,6 @@ MIN_ARM_DURATION = 3            # 机械臂最少3秒
 
 def exec_polygon(got, params):
     """
-    走多边形
     params: [边数, 边长, 方向(cw/ccw), 模式(forward/backward可选)]
     原理：多边形外角和=360°，每次转 360÷边数 度，走一条边转一次
     """
@@ -68,7 +67,7 @@ def exec_polygon(got, params):
             got.mecanum_move_speed_times(0, POLYGON_MOVE_SPEED, side_length, 1)
         time.sleep(0.2)
 
-        # 转向（最后一条边走完不需要再转）
+        # 转向
         if i < sides - 1:
             if is_clockwise:
                 got.mecanum_turn_speed_times(3, POLYGON_TURN_SPEED, turn_angle, 2)  # 右转
@@ -132,7 +131,7 @@ def exec_turn(got, params):
 
 def exec_rotate(got, params):
     """
-    旋转（用于360度转圈，和turn类似但速度更快）
+    旋转
     params: [角度]
     """
     angle = int(params[0])
@@ -140,7 +139,7 @@ def exec_rotate(got, params):
 
     print(f"  旋转{angle}°")
 
-    # 默认右转（顺时针转圈）
+    # 默认顺时针转圈
     got.mecanum_turn_speed_times(3, ROTATE_SPEED, angle, 2)
     time.sleep(0.3)
     return True
@@ -163,16 +162,12 @@ def exec_arm(got, params):
         cycle += 1
         print(f"    机械臂循环 {cycle}")
 
-        # 关节2抬起
         got.mechanical_single_joint_control(2, 0, 100)
         time.sleep(0.5)
-        # 关节2放下
         got.mechanical_single_joint_control(2, 60, 100)
         time.sleep(0.5)
-        # 夹爪张开
         got.mechanical_clamp_release()
         time.sleep(0.3)
-        # 夹爪闭合
         got.mechanical_clamp_close()
         time.sleep(0.3)
 
@@ -203,7 +198,6 @@ def parse_and_exec(got, action_str):
     if not action_str:
         return False
 
-    # 自动转换括号格式 func(a, b, c) -> func:a,b,c
     if "(" in action_str and action_str.endswith(")"):
         open_idx = action_str.index("(")
         func_name = action_str[:open_idx].strip()

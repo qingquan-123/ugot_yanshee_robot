@@ -16,7 +16,7 @@ import cv2
 import numpy as np
 from ugot import ugot
 
-# ===== TensorFlow 条件导入（ugot 环境没有，tf-od 环境才有）=====
+# ===== TensorFlow 条件导入=====
 try:
     import tensorflow as tf
     tflite = tf.lite
@@ -851,21 +851,17 @@ def detect_label_objects(frame, min_conf=0.8):
     if not _model_loaded or _interpreter is None:
         return []
     try:
-        # 1. 图像预处理：BGR→RGB→resize到320
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         small = cv2.resize(rgb, (320, 320))
 
-        # 2. 根据模型输入类型构造张量
         if _is_uint8:
             tensor = np.expand_dims(small, 0)
         else:
             tensor = np.expand_dims(small.astype(np.float32) / 255.0, 0)
 
-        # 3. 推理
         _interpreter.set_tensor(_input_details['index'], tensor)
         _interpreter.invoke()
 
-        # 4. 输出顺序：boxes=out[0], scores=out[1], classes=out[2]
         boxes = _interpreter.get_tensor(_output_details[0]['index'])[0]
         scores = _interpreter.get_tensor(_output_details[1]['index'])[0]
         try:
@@ -875,7 +871,6 @@ def detect_label_objects(frame, min_conf=0.8):
         if classes is None:
             return []
 
-        # 5. 解析结果
         frame_h, frame_w = frame.shape[:2]
         results = []
         for i in range(len(scores)):
@@ -1617,40 +1612,31 @@ def warehouse_full_6step(got, target_color, target_store_id):
     print(f"智能仓储6步流程：先Tag对准 → 抓取{target_color} → 放置到{target_store_id}号（不返回）")
     print("=" * 60)
     try:
-        # 第1步：先识别tag码
-        print("\n===== 第1步：AprilTag 对准 =====")
+        print("\n===== AprilTag 对准 =====")
         align_with_apriltag(got)
 
-        # 第2步：再机器复位
         arm_reset(got)
 
-        # 第3步：视觉复位
-        print("\n===== 第3步：视觉复位 =====")
+        print("\n===== 视觉复位 =====")
         reset_line_vision(got)
 
-        # 第4步：搜索抓取
-        print(f"\n===== 第4步：搜索抓取 {target_color} 色块 =====")
+        print(f"\n===== 搜索抓取 {target_color} 色块 =====")
         _, _, grab_flag, _, _ = get_bbox(got, target_color)
         if grab_flag is None:
             print("未找到目标色块，任务终止")
             return False, None, None
         print(f"在 {grab_flag} 号区抓取到 {target_color} 色块")
 
-        # 冲突判断：抓取区与目标放置区相同，改放6号
         if grab_flag == target_store_id:
             print(f" 抓取区({grab_flag}号)与目标放置区({target_store_id}号)相同，冲突！改放6号")
             target_store_id = 6
 
-        # 第5步：抓取后返回
         five_store_1(got, grab_flag)
 
-        # 第5.5步：返回中转区后再次AprilTag对准，修正返回来的车身朝向
         align_with_apriltag(got)
 
-        # 第5.6步：对准后向右平移一点点
         got.mecanum_translate_speed_times(90, 10, 15, 1)
 
-        # 第6步：搜索放置
         print(f"\n===== 第6步：搜索放置到 {target_store_id} 号存储区 =====")
         _, _, place_flag, _ = search_label_and_place(got, target_store_id)
         if place_flag is None:
@@ -1698,14 +1684,11 @@ if __name__ == "__main__":
         got.initialize('10.233.104.242')
         print("机器人连接成功")
 
-        # 0. 前置转圈
         if pre_rotate != 0:
             action_rotate(got, pre_rotate)
 
-        # 1. 前进 Zcm
         action_forward(got, forward_cm)
 
-        # 2. 抓取并放置（7步或6步）
         if need_return:
             success, grab_flag, place_flag = warehouse_full_7step(got, target_color, target_store_id)
         else:
@@ -1714,17 +1697,14 @@ if __name__ == "__main__":
             print("仓储流程失败")
             sys.exit(1)
 
-        # 3. 后退 Lcm
         action_backward(got, backward_cm)
 
-        # 4. 转向
         if turn_angle != 0:
             action_turn(got, turn_angle)
 
         print(f"\n智能仓储任务完成: grab_flag={grab_flag}, place_flag={place_flag}")
         sys.exit(0)
 
-    # 原模式：python smart_warehouse.py <target_color> <target_store_id> <need_return>
     else:
         if len(sys.argv) < 4:
             print("用法:")

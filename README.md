@@ -54,6 +54,7 @@ gs/
 │       ├── main.py             # 主控制程序
 │       └── YanAPI.py           # Yanshee 通信 API 封装
 ├── models/            # 目标检测模型（TensorFlow Lite / frozen graph）
+├── yanshee_move/      # Yanshee 动作库（.hts 动作文件：行走/转弯/抓取/蹲起等 47 个）
 ├── test_scripts/      # 分平台测试与调试脚本
 └── .gitignore
 ```
@@ -201,3 +202,8 @@ QIANFAN_SECRET_KEY = "你的SK"
 - **区域标签识别播报**（tf_test.py）：one~six 六区标签 TFLite 识别，取置信度最高者播中文（一号区~六号区）；同标签播报冷却 5s；识别间隔 0.1s；最低置信度 0.5。
 - **tf-od 环境**：ugot 板载环境无 tensorflow；含 TF 脚本须用 `C:\Users\16231\anaconda3\envs\tf-od\python.exe` 运行（tflite.Interpreter num_threads=4）。
 - **机器人端侧识别部署**（tf_test_robot.py）：板载 Linux 用 tflite-runtime + Pillow（无 opencv）；模型放 /root/models/；MobaXterm 传脚本到 /root/；ssh 后 `python3 /root/tf_test_robot.py`；本机 initialize('127.0.0.1')；Pillow 直接 JPEG→RGB numpy。
+
+---
+
+**作者**：赖智坤
+**时间**：2026/10/17

@@ -16,7 +16,6 @@ import ast
 import re
 import random
 
-# ===== SSL 证书补丁（必须在 import qianfan 之前）=====
 try:
     import ssl
     import certifi
@@ -54,7 +53,7 @@ WEATHER_TIMEOUT = 5             # 天气接口超时秒数
 ASR_TIMEOUT = 15                 # 语音识别超时秒数（循环调用，给用户足够时间说话）
 EMOTION_HOLD_TIME = 2.5         # 表情保持秒数
 
-# 大模型系统提示词：强制简短回答
+# 大模型系统提示词：简短回答
 SYSTEM_PROMPT = """你是一个陪伴机器人，回答必须遵守以下规则：
 1. 回答必须简短，1-2句话，不超过40个字
 2. 口语化，适合语音播报，不要用书面语
@@ -65,7 +64,7 @@ SYSTEM_PROMPT = """你是一个陪伴机器人，回答必须遵守以下规则�
 7. 如果用户问问题你不知道，就说"这个我不太清楚呢"然后反问一个轻松的问题
 """
 
-# 兜底回答（大模型超时/失败时随机选一个）
+# 兜底回答
 FALLBACK_ANSWERS = [
     "这个问题有点难，不过开心最重要啦！",
     "哈哈你说的真有趣，我们换个话题吧？",
@@ -109,7 +108,7 @@ LIGHT_COLOR_MAP = {
     "绿色": [0, 255, 0], "绿": [0, 255, 0],
 }
 
-# 常见城市列表（用于从用户话中提取城市名）
+# 常见城市列表
 KNOWN_CITIES = [
     "北京", "上海", "广州", "深圳", "杭州", "南京", "武汉", "成都",
     "重庆", "西安", "东莞", "苏州", "天津", "长沙", "青岛", "大连",
@@ -190,7 +189,6 @@ def generate_answer(user_text, chat_history):
     - 普通问题 → 直接大模型回答
     - 大模型超时/失败 → 随机兜底回答
     """
-    # 1. 天气问题特殊处理
     if is_weather_question(user_text):
         city = extract_city(user_text)
         print(f"  检测到天气问题，查询城市: {city}")
@@ -210,12 +208,10 @@ def generate_answer(user_text, chat_history):
     else:
         user_prompt = user_text
 
-    # 2. 构建消息（系统提示 + 历史 + 当前问题）
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     messages.extend(chat_history)
     messages.append({"role": "user", "content": user_prompt})
 
-    # 3. 调用大模型
     try:
         resp = chat_comp.do(
             messages=messages,
@@ -237,7 +233,6 @@ def generate_answer(user_text, chat_history):
 
 def listen_user(got, timeout=ASR_TIMEOUT):
     """
-    循环调用语音识别，直到识别到文字或超时。
     start_audio_asr() 是非阻塞的，必须循环调用，否则用户来不及说话。
     返回识别到的文字，超时返回 None
     """
@@ -276,8 +271,7 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
     print("=" * 60)
 
     try:
-        # ===== 1. 开场 =====
-        print("\n===== 1. 开场 =====")
+        print("\n=====  开场 =====")
         try:
             got.play_audio_tts("你好，我是你的陪伴机器人，我们开始聊天吧", 0, True)
         except:
@@ -285,7 +279,6 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
         show_text_on_screen(got, "陪伴模式")
         time.sleep(1)
 
-        # ===== 2. 陪伴对话 =====
         chat_history = []
         for i in range(chat_times):
             print(f"\n===== 2.{i+1} 第 {i+1}/{chat_times} 次对话 =====")
@@ -324,7 +317,6 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
                 except:
                     pass
 
-            # 保存对话历史（只保留最近2轮=4条消息）
             chat_history.append({"role": "user", "content": user_text})
             chat_history.append({"role": "assistant", "content": answer})
             if len(chat_history) > 4:
@@ -332,7 +324,7 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
 
             time.sleep(0.5)
 
-        # ===== 3. 显示表情 =====
+        # ===== 显示表情 =====
         print(f"\n===== 3. 显示表情：{emotion} =====")
         emo_en = EMOTION_MAP.get(emotion, "Smile")
         print(f"  表情英文名: {emo_en}")
@@ -347,7 +339,7 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
             print(f"  表情显示失败: {e}")
         time.sleep(EMOTION_HOLD_TIME)
 
-        # ===== 4. 模仿音效 =====
+        # ===== 模仿音效 =====
         print(f"\n===== 4. 模仿音效：{sound_list} =====")
         for idx, snd in enumerate(sound_list):
             snd_en = SOUND_MAP.get(snd, "monkey")
@@ -363,7 +355,7 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
                     pass
             time.sleep(0.5)
 
-        # ===== 5. 呼吸灯 =====
+        # ===== 呼吸灯 =====
         print(f"\n===== 5. {light_color}呼吸灯 {light_duration}秒 =====")
         rgb = LIGHT_COLOR_MAP.get(light_color, [255, 0, 0])
         print(f"  RGB: {rgb}")
@@ -398,7 +390,6 @@ def companion_full_flow(got, chat_times, emotion, sound_list, light_color, light
         traceback.print_exc()
         return False
     finally:
-        # 确保呼吸灯关闭
         try:
             got.show_light_rgb_effect(0, 0, 0, 1)
         except:
@@ -439,7 +430,6 @@ if __name__ == "__main__":
     got.initialize(ROBOT_IP)
     print("机器人连接成功")
 
-    # 执行陪伴流程
     success = companion_full_flow(
         got, chat_times, emotion, sound_list, light_color, light_duration, repeat
     )

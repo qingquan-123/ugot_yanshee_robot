@@ -708,14 +708,12 @@ def chat_once(question="你还好吗？需要帮助吗？"):
 
     print(f"\n  场景化单次对话：问「{q}」")
 
-    # 1. 播报问题 + 屏幕显示问题
     try:
         u.play_audio_tts(q, 0, True)
     except:
         pass
     display_text_on_screen(q)
 
-    # 2. 等待用户回答（15秒超时）
     user_answer = None
     start_time = time.time()
     while time.time() - start_time < 15:
@@ -733,7 +731,6 @@ def chat_once(question="你还好吗？需要帮助吗？"):
         print("  未听到用户回答，使用默认回应")
         user_answer = "（对方没有回答）"
 
-    # 3. 大模型根据用户回答生成回应
     if LLM_READY2:
         try:
             user_prompt = f"{SYSTEM_PROMPT2}\n\n我问：{q}\n对方回答：{user_answer}\n请用一句话回应。"
@@ -755,7 +752,6 @@ def chat_once(question="你还好吗？需要帮助吗？"):
 
     print(f"  机器人回应：{answer}")
 
-    # 4. 播报回应 + 屏幕显示回应（得分点：显示屏显示回答的文字）
     try:
         u.play_audio_tts(answer, 0, True)
     except:
@@ -768,7 +764,6 @@ def chat_once(question="你还好吗？需要帮助吗？"):
 
 def _run_script(script_name, args):
     """
-    通用脚本调用函数
     :param script_name: 脚本文件名（如 smart_warehouse.py）
     :param args: 命令行参数列表
     :return: True=成功, False=失败
@@ -795,7 +790,7 @@ def _run_script(script_name, args):
         return False
 
 
-# ---- 1. 智能仓储 → smart_warehouse.py ----
+# ---- 智能仓储 → smart_warehouse.py ----
 def smart_warehouse_task(pre_rotate, forward_dist, target_color, target_pos, backward_dist, rotate_angle=0, need_return=1):
     """
     智能仓储完整任务（调用 smart_warehouse.py）
@@ -816,7 +811,7 @@ def smart_warehouse_task(pre_rotate, forward_dist, target_color, target_pos, bac
     return _run_script("smart_warehouse.py", ["smart_warehouse", str(pre_rotate), str(forward_dist), target_color, str(target_pos), str(backward_dist), str(rotate_angle), str(need_return)])
 
 
-# ---- 2. 智能陪伴 → smart_companion.py ----
+# ---- 智能陪伴 → smart_companion.py ----
 def smart_companion_task(chat_times, emotion, sound, light_color, light_duration=3, repeat=False):
     """
     智能陪伴完整任务（调用 smart_companion.py，待创建）
@@ -836,7 +831,7 @@ def smart_companion_task(chat_times, emotion, sound, light_color, light_duration
     return _run_script("smart_companion.py", [chat_times, emotion, sound, light_color, light_duration, repeat])
 
 
-# ---- 3. 智能侦察 → smart_recon.py ----
+# ---- 智能侦察 → smart_recon.py ----
 def smart_detective_task(sequence=None):
     """
     智能侦察任务（调用 smart_recon.py，待创建）
@@ -855,7 +850,7 @@ def smart_detective_task(sequence=None):
     return _run_script("smart_recon.py", [seq_str])
 
 
-# ---- 4. 智能解算 → smart_geometry.py ----
+# ---- 智能解算 → smart_geometry.py ----
 def geometry_task(action_seq):
     """
     智能解算任务（调用 smart_geometry.py）
@@ -893,7 +888,6 @@ def execute_action(action_str):
         func_name = action_str.split('(')[0].strip()
         params_str = action_str.split('(', 1)[1].rsplit(')', 1)[0].strip()
 
-        # 解析参数：按逗号分割，但保护方括号（列表）和引号（字符串）内的逗号
         params = []
         if params_str:
             parts = []
